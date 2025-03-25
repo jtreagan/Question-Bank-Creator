@@ -1,0 +1,1285 @@
+
+/*
+        // TODO: Font Libre Baskerville, 14 pt.  -- next iteration.
+        // TODO: All this needs to be user modifiable. -- next iteration.
+        // TODO: Goal is for  WYSIWIG.  --  in the far, far future.
+        // TODO: What do you do if you are editing/creating a bank and then decide
+        //          to create another by clicking the  New  button in the menu?
+        // TODO: Make the bank title bar editable.
+        // TODO: Add second line to the title containing the associated textbook text.
+        // TODO: Tweak the bank display colors & etc.
+        // TODO: Make the starter text for question entry disappearing.
+        // TODO: Question display should show calculated values for the variables
+        //          rather than the variable ID.  Maybe highlight the values so
+        //          that the variable can be easily located.
+
+        // TODO: bnk_read() -- Put prompts in popup window off to the side of the dialog.
+        // TODO: bnk_read() -- Should return an option or result rather than  `unwrap()` or `panic!()`.
+
+
+ */  // TODO's
+
+use crate::banks::Bank;
+use fltk::app::App;
+use fltk::group::Scroll;
+//use fltk::prelude::{GroupExt, WidgetExt};
+use fltk::text::{TextDisplay, TextEditor};
+use fltk::utils::oncelock::Lazy;
+//use fltk::window::Window;
+use std::sync::Mutex;
+//use fltk::enums::Color;
+
+// region  Global Constants
+
+pub const DEVELOPMENT_VERSION: &str = "Question Bank Rebuild 4";
+pub const PROGRAM_TITLE: &str = "Question Bank Creator";
+pub const VERSION: &str = "0.30.5";     // Note:  Versioning is decimal in nature.pub const DATA_GENERAL_FOLDER: &str = "/home/jtreagan/programming/rust/mine/qbnk_data";
+
+pub const LIST_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/lists";
+pub const VARIABLE_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/variables";
+pub const QUESTION_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/questions";
+pub const BANK_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/banks";
+
+pub const QDISP_HEIGHT: i32 = 150;
+
+// endregion
+
+//region Global Variables
+
+pub static CURRENT_BANK: Lazy<Mutex<Bank>> = Lazy::new(|| Mutex::new(Bank::new()));
+pub static LAST_DIR_USED: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new(String::new()));
+pub static APP_FLTK: Lazy<Mutex<App>> = Lazy::new(|| Mutex::new(App::default()));
+pub static WIDGETS: Lazy<Mutex<Wdgts>> = Lazy::new(|| Mutex::new(Wdgts::new()));
+
+//endregion
+
+// region Wdgts Struct that holds the primary window's widgets.
+pub struct Wdgts {
+    pub title_editbox: TextEditor,
+    pub scroll: Scroll,
+    pub qstn_boxes: Vec<TextDisplay>,
+}
+
+impl Wdgts {
+    pub fn new() -> Self {
+        Self {
+            title_editbox: TextEditor::default(),
+            scroll: Scroll::default(),
+            qstn_boxes: Vec::new(),
+        }
+    }
+}
+
+impl Clone for Wdgts {
+    fn clone(&self) -> Self {
+        Self {
+            title_editbox: self.title_editbox.clone(),
+            scroll: self.scroll.clone(),
+            qstn_boxes: self.qstn_boxes.clone(),
+        }
+    }
+}
+
+// endregion
+
+pub mod global {
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Debug, Serialize, Deserialize, Clone)]
+    pub enum TypeWrapper {
+        Alphanum(String),
+        Letter(char),
+        Integer(i64),
+        Floating(f64),
+    }
+}  // End   global   module
+
+pub mod banks {
+    use crate::misc::get_text_from_editor;
+    use crate::{questions::*, Wdgts, BANK_DIR, CURRENT_BANK, LAST_DIR_USED, WIDGETS};
+    use fltk::app::set_font_size;
+    use fltk::enums::{Color, FrameType};
+    use fltk::prelude::{DisplayExt, GroupExt, WidgetBase, WidgetExt};
+    use fltk::text::{TextBuffer, TextDisplay};
+    use fltk::window::Window;
+    use fltk::{app, button::Button, frame::Frame, group::Scroll, text};
+    use lib_file::file_fltk::*;
+    use lib_file::file_mngmnt::file_read_to_string;
+    use lib_input_fltk::input::input_string;
+    use serde::{Deserialize, Serialize};
+    use std::{fs::File, io::Write};
+
+    //region Struct Section
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct Bank {
+        pub bank_title: String,   // Also used for file name.
+        pub associated_textbook: String,   // Use  ""  if no text being used.
+        pub question_vec: Vec<Question>,
+    }
+
+    impl Bank {
+        pub fn new() -> Bank {
+            Self {
+                bank_title: "No Bank Loaded".to_string(),
+                associated_textbook: "Untitled Textbook".to_string(),
+                question_vec: Vec::new(),
+            }
+        }
+    }
+
+    impl Clone for Bank {
+        fn clone(&self) -> Self {
+            Self {
+                bank_title: self.bank_title.clone(),
+                associated_textbook: self.associated_textbook.clone(),
+                question_vec: self.question_vec.clone(), // Vec itself implements Clone.
+            }
+        }
+    }
+
+    //endregion
+
+    pub fn bnk_refresh_widgets() {
+        let mut usebank: Bank;
+        let mut wdgts: Wdgts;
+        {
+            usebank = CURRENT_BANK.lock().unwrap().clone();
+            wdgts = WIDGETS.lock().unwrap().clone();
+        }  // Load the global structs.
+
+        // Place the title box buffer in the bank data struct.
+        usebank.bank_title = get_text_from_editor(&wdgts.title_editbox);
+
+        // For loop through quest display boxes re-adding them to the scroll group.
+        for qstn_box in wdgts.qstn_boxes.iter() {
+            wdgts.scroll.add(qstn_box);
+        }
+
+        wdgts.scroll.redraw();
+    }
+
+
+    pub fn bnk_create() {
+        let usetitle = input_string("Please enter the bank's title.", 300, 90);
+        let mut newbank = Bank::new();
+
+        // Pass the inputted values into the struct fields.
+        newbank.bank_title = usetitle.clone();
+        newbank.associated_textbook = input_string("If you are using an associated textbook \n please enter its info. \n Press  Enter  if no textbook is being used.",
+                                                   800, 200);
+        // Pass the new bank into CURRENT_BANK
+        *CURRENT_BANK.lock().unwrap() = newbank.clone();
+
+        // Save and display the bank.
+        bnk_save();
+        bnk_display();
+    }
+
+    pub fn bnk_display() -> Window {
+
+        //region Access the bank that is currently being used.
+        let usebank: Bank;
+        {
+            usebank = CURRENT_BANK.lock().unwrap().clone();
+        }  //endregion The locked global is now dropped and thus unlocked.
+
+        //region Set up display window.
+
+        let mut display_window = Window::default().with_size(825, 900).with_pos(1100, 200);
+        set_font_size(20);
+        display_window.set_color(Color::Cyan);
+        display_window.set_label( "Question Bank Display");
+        display_window.make_resizable(true);
+
+        let mut scroll = Scroll::new(0, 0, 825, 900, "");
+        scroll.set_scrollbar_size(15);
+        // endregion   This does not access any of the struct data.
+
+        // region Add frame for displaying title.
+        let mut titleframe = Frame::new(0, 0, 825, 50, usebank.bank_title.as_str() );
+        titleframe.set_frame(FrameType::BorderBox);
+        titleframe.set_color(fltk::enums::Color::Yellow);
+        titleframe.set_selection_color(fltk::enums::Color::from_rgb(200, 200, 200));
+        titleframe.set_label_size(22);
+        //endregion
+
+        //region Add TextDisplay boxes and buttons
+
+        let mut yyy = 76;
+        let mut nnn = 1;
+
+        // The loop below sets up display boxes for each question in the bank.
+        for question in usebank.question_vec.iter() {
+            let qlabel = format!("Question {} :  ", nnn);   // Create the question label
+            let mut txtbuff = TextBuffer::default();        //   and set up text buffer.
+            txtbuff.set_text(question.qtext.as_str());
+
+            // region Setup the display box and it's attributes.
+            let mut display = TextDisplay::new(0, yyy, 825, 150, qlabel.as_str());
+            display.set_buffer(txtbuff);
+            display.wrap_mode(text::WrapMode::AtBounds, 0);
+            display.set_color(fltk::enums::Color::White);
+            display.set_text_size(22);
+            display.set_text_color(fltk::enums::Color::Black);
+            // endregion
+
+            // region Setup the edit button & callback
+            let editbtn_x = display.x() + display.w() - 50;
+            let editbtn_y = display.y() + display.h() - 30;
+            let mut editbtn = Button::new(editbtn_x, editbtn_y, 50, 30, "Edit");
+
+            editbtn.set_callback(move |_| {
+                println!("\n Edit button for Question #{} has been pressed. \n", nnn);
+                qst_edit(nnn - 1);
+            });
+            // endregion
+
+            // TODO: Set up show/edit prereqs and objectives button
+            // TODO: Create a subframe to display/edit the answer.
+
+            yyy += 175;     // Increment the question display widget position.
+            nnn += 1;       // Increment the question display number.
+        }
+// endregion
+
+        scroll.end();
+        display_window.resizable(&scroll);
+        display_window.end();
+        display_window.show();
+
+        //while win.shown() {
+        //    app::wait();
+            //bnk_display();
+        //}
+
+        display_window
+
+        // TODO: Add a save dialog for when the display is closed.
+    }
+
+    pub fn bnk_read() {
+
+        // Setup proper directory and read the file.
+        println!("\n Please choose the Bank file to be read.");
+
+        let usepath: String;
+
+        // region Set up directories.
+        { // Global variable scope is restricted to avoid Mutex lock.
+            if LAST_DIR_USED.lock().unwrap().clone() == "" {
+                *LAST_DIR_USED.lock().unwrap() = BANK_DIR.to_string().clone();
+            }
+            let lastdir = LAST_DIR_USED.lock().unwrap().clone();
+            usepath = file_fullpath(&lastdir);
+            *LAST_DIR_USED.lock().unwrap() = usepath.clone();  // Update LAST_DIR_USED
+        }
+        //endregion
+
+        // region Read the chosen file.
+
+        let usebank: Bank;
+        match file_read_to_string(&usepath) {
+            Ok(contents) => {
+                usebank = serde_json::from_str(&contents).unwrap();
+                *CURRENT_BANK.lock().unwrap() = usebank.clone();
+            }
+            // TODO: Fix error handling.  This is terrible.  See thread in forum at
+            // https://users.rust-lang.org/t/help-understanding-never-used-warning/125562/2
+            Err(err) => {
+                eprintln!("\n Error reading the file: {} \n", err);
+                panic!("\n Error reading the file. \n");
+            }
+        }
+        // endregion
+
+        // Pass the new bank into CURRENT_BANK
+        *CURRENT_BANK.lock().unwrap() = usebank.clone();
+
+        bnk_refresh_title();
+    }
+
+    pub fn bnk_refresh_title() {
+
+        app::awake();
+
+
+        let usebank: Bank;
+        let mut wdgts: Wdgts;
+        {
+            usebank = CURRENT_BANK.lock().unwrap().clone();
+            wdgts = WIDGETS.lock().unwrap().clone();
+        }  // Access global structs.
+
+        let mut buf = TextBuffer::default();
+
+        //buf.set_text("NEW TEXT NEW TEXT NEW TEXT");  // Uses the title from the current bank.
+
+        buf.set_text(usebank.bank_title.as_str());  // Uses the title from the current bank.
+
+        wdgts.title_editbox.set_buffer(buf);
+        //wdgts.title_editbox.redraw();
+
+        let title_text = wdgts.title_editbox.buffer().unwrap().text();
+        println!("\n Waypoint 4. The title edit box should now contain: \n {:?} \n", title_text);
+
+    }
+
+    pub fn bnk_save() {
+        if LAST_DIR_USED.lock().unwrap().clone() == "" {
+            *LAST_DIR_USED.lock().unwrap() = BANK_DIR.to_string().clone();
+        }
+
+        let lastdir = LAST_DIR_USED.lock().unwrap().clone();
+
+        // TODO: Find way to insert bank title into the save-file dialog.
+        // TODO: Reset value of   lastdir.
+        // TODO: Find way to append correct extension automatically.
+
+        println!("Please choose a directory and file name for saving.");
+        let usepath = file_browse_save_fltr(&lastdir, "*.bnk");
+        *LAST_DIR_USED.lock().unwrap() = usepath.clone();  // Set the last used directory.  Need to truncate the file name.
+
+        bnk_save_as_json(&usepath);
+    }
+
+    pub fn bnk_save_as_json(usepath: &String) {
+
+        let bnk1 = CURRENT_BANK.lock().unwrap().clone();
+
+        let bnk_as_json = serde_json::to_string(&bnk1).unwrap();  // Convert bank to json string.
+
+        let mut file = File::create(usepath).expect("Could not create file!");
+
+        file.write_all(bnk_as_json.as_bytes())
+            .expect("Cannot write to the file!");
+    }
+
+    pub fn bnk_recalc() {
+
+        let usebank = CURRENT_BANK.lock().unwrap().clone();
+        println!("\n Recalculate variables in a bank.  Not yet implemented. \n");
+        println!("\n The current bank is: \n {:?} \n", usebank);
+
+        //  Read the passed bank
+        //  for q in usebank.question_vec.iter() {
+        //      step thru and recalc each variable
+        //      in each question.
+        // }
+    }
+
+    /*
+    pub fn test_globalbank_access() {
+        let testbank = CURRENT_BANK.lock().unwrap().clone();
+        println!("\n The test bank is: \n {:?} \n", testbank);
+    }
+
+
+    pub fn temp_listwindows(app: &App) {
+
+    // Retrieve all open child windows
+    let windows = app::windows();
+    println!("\n Currently Open Child Windows: \n");
+
+    for item in windows.iter() {
+        let winlabel = item.label();
+        println!("\n Window: {} \n", winlabel);
+    }
+}
+*/  // delete later
+
+}  // End    bank    module
+
+pub mod questions {
+    use crate::banks::{bnk_display, bnk_save, Bank};
+    use crate::variable::*;
+    use crate::{CURRENT_BANK, LAST_DIR_USED, VARIABLE_DIR};
+    use fltk::app::set_font_size;
+    use fltk::enums::{Color, Shortcut};
+    use fltk::prelude::{DisplayExt, GroupExt, MenuExt, WidgetBase, WidgetExt, WindowExt};
+    use fltk::text::{TextBuffer, TextEditor};
+    use fltk::{app, menu, text, window};
+    use lib_file::file_fltk::*;
+    use lib_file::file_mngmnt::{file_get_dir_list, file_read_to_string};
+    use lib_input_fltk::input::{input_string, input_strvec};
+    use lib_myfltk::fltkutils::*;
+    use lib_utils::utilities::*;
+    use serde::{Deserialize, Serialize};
+
+    //region Struct Section
+
+    #[derive(Debug, Serialize, Deserialize, Clone)]
+    pub struct Question {
+        pub qtext: String,
+        pub var_dirpath: String,
+        pub var_vec: Vec<Variable>,
+        pub answer: String,
+        pub objectives: Vec<String>,
+        pub prereqs: Vec<String>,
+    }
+
+    impl Question {
+        fn new() -> Question {
+            Self {
+                qtext: "Please enter the text of your question.  Use real values. You will replace those values with variables later.  Be sure to delete these instructions before entering your question text.".to_string(),
+                var_dirpath: VARIABLE_DIR.to_string(),
+                var_vec: Vec::new(),
+                answer: "Answer".to_string(),
+                objectives: Vec::new(),
+                prereqs: Vec::new(),
+            }
+        }
+    }  // End   Question   impl
+    //endregion
+
+    pub fn qst_create() {
+    // TODO: Check that a bank has been loaded before allowing a new question.
+    // TODO: Make the starter text disappears as soon as user starts typing.
+
+        let mut newquest = Question::new();
+
+// region Question data entry
+
+        let nowtext = qst_editor(newquest.qtext.as_str(), "Question Editor");
+        newquest.qtext = nowtext.clone();
+
+        // Pull the flagged variables from the text and push them to the variable vector.
+        qst_fill_varvec_parsetext(&mut newquest);
+
+                // Answer will eventually need to be calculated.
+        //let app = APP_FLTK.lock().unwrap();
+        newquest.answer = input_string("Please input the question's answer:  ", 790, 300);
+        newquest.objectives = input_strvec("Please enter the question objectives:  ", 790, 300);
+        newquest.prereqs = input_strvec("Please enter the question prerequisites:  ", 790, 300);
+// endregion
+
+// region Save and store the data
+        let mut usebank: Bank;
+        {
+            usebank = CURRENT_BANK.lock().unwrap().clone();
+        }
+
+        // Push the question to the vector in the bank and save the bank.
+
+        usebank.question_vec.push(newquest);
+
+        {
+            *CURRENT_BANK.lock().unwrap() = usebank.clone();
+        }
+
+        bnk_save();
+// endregion
+
+        // TODO: Need to close the old display window before opening a new one.
+        //          or is there a way to simply refresh the old disp window?
+
+        //bnk_display();
+    }
+
+    pub fn qst_edit(qst_idx: usize) {
+        //let mut lastdir = LAST_DIR_USED.lock().unwrap().clone();
+        let usebank = CURRENT_BANK.lock().unwrap();
+        let mut editqst = usebank.question_vec.get(qst_idx).unwrap().clone();
+
+        let nowtext = qst_editor(editqst.qtext.as_str(), "Question Editor");
+        editqst.qtext = nowtext.clone();
+
+        // Pull the flagged variables from the text and push them to the variable vector.
+        qst_fill_varvec_parsetext(&mut editqst);  // Need to clear the vector first.
+
+        // Answer will eventually need to be calculated.
+        //let app = APP_FLTK.lock().unwrap();
+        editqst.answer = input_string("Please input the question's answer:  ", 790, 300);
+        editqst.objectives = input_strvec("Please enter the question objectives:  ", 790, 300);
+        editqst.prereqs = input_strvec("Please enter the question prerequisites:  ", 790, 300);
+
+        // Push the question to the vector in the bank and save the bank.
+        let mut usebank = CURRENT_BANK.lock().unwrap();
+        usebank.question_vec.push(editqst.clone());  // This won't work.  push()  appends to the end of the vector.
+        bnk_save();
+        bnk_display();
+    }
+
+    pub fn qst_chooseqst() -> Question {
+
+        // TODO: Instead of trying to put the whole text of the question
+        //          body in the radio button, number each question in the
+        //          bank display and choose by the question number.
+
+        // Note:  This function may not be necessary.
+
+        let mut usevec: Vec<String> = Vec::new();
+        let usebank = CURRENT_BANK.lock().unwrap();
+
+        for item in usebank.question_vec.iter() {
+            usevec.push(item.qtext.clone());
+        }
+
+        let usequest = fltk_radio_lightbtn_menu(&usevec);
+        let mut editquest = Question::new();
+
+        for item in usebank.question_vec.iter() {
+            if item.qtext == usequest {
+                editquest = item.clone();
+            }
+        }
+
+        editquest
+    }  // Is this necessary now?
+
+    pub fn qst_fill_varvec_parsetext(quest: &mut Question) {
+        //let lastdir = LAST_DIR_USED.lock().unwrap();
+
+        // Creates a vector of the variable names that have been flagged in the text.
+        let mut usevec = util_flaggedtxt_2vec(&quest.qtext, '§');
+        usevec.sort();
+        usevec.dedup();     // Removes repeats of the flagged variable names.
+
+        // Read the variable files from disk and insert them into the variable vector.
+        quest.var_vec.clear();
+        for _item in usevec {
+            let newvar = vrbl_read();
+            quest.var_vec.push(newvar);
+        }
+    }
+
+    /*
+        pub fn qst_fill_varvec_dirlist() -> Vec<Variable> {
+            println!("\n Please choose the variables you want to include as part of your question:  ");
+            let path = file_pathonly();
+            let flist = file_get_dir_list(&path);
+            let flist_vec = chkbox_shift_menu(&flist);
+            let mut usevec: Vec<Variable> = Vec::new();
+
+            for item in flist_vec {
+                let flist_fullpath = format!("{}/{}", path, item);
+                println!("{}", flist_fullpath);
+                usevec.push(vrbl_read_nogetpath(&flist_fullpath));
+            };
+            usevec
+        }
+    */   //fn qst_fill_varvec_dirlist()
+
+    pub fn qst_editor(startertxt: &str, winlabel: &str) -> String {
+
+        // TODO: Make the starter text disappear on first key stroke.
+
+        let mut buf = TextBuffer::default();
+        let mut edtrwin = window::Window::default().with_size(800, 300);
+        set_font_size(20);
+        edtrwin.set_color(Color::Blue);
+        edtrwin.set_label(winlabel);
+        edtrwin.make_resizable(true);
+
+        buf.set_text(startertxt);
+        let mut edtr = TextEditor::default()
+            .with_size(770, 222)
+            .center_of_parent();
+
+        qst_editor_menubar(&edtr, &mut edtrwin, &mut buf);
+
+        edtr.set_buffer(buf.clone());   // Clone is used here to avoid an ownership error.
+        edtr.wrap_mode(text::WrapMode::AtBounds, 0);
+        edtr.set_color(Color::White);
+        edtr.set_text_size(22);
+        edtr.set_text_color(Color::Black);
+
+        edtrwin.end();
+        edtrwin.show();
+
+        while edtrwin.shown() {
+            app::wait();
+        }
+
+        buf.text()
+    }
+
+    pub fn qst_editor_menubar(edtr: &TextEditor, edtrwin: &mut window::Window, buf: &mut TextBuffer) -> menu::MenuBar {
+        let mut menubar = menu::MenuBar::new(0, 0, edtrwin.width(), 40, "");
+
+        let mut edtrwin_clone = edtrwin.clone();
+        let quit_idx = menubar.add(
+            "Finished\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            move |_| {
+                edtrwin_clone.hide();
+            },
+        );
+        menubar.at(quit_idx).unwrap().set_label_color(Color::Red);
+
+        let edtr_clone = edtr.clone();
+        let mut buf_clone = buf.clone();
+        menubar.add(
+            "Insert_Variable\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            move |_| {
+                let newtext  = qst_make_var_replace_text();
+                fltk_replace_highlighted_text(&edtr_clone, &mut buf_clone, &newtext);
+            },
+        );
+
+        menubar
+    }
+
+    pub fn qst_make_var_replace_text() -> String {
+        let lastdir = LAST_DIR_USED.lock().unwrap();
+
+        println!("\n Please choose the variable you want to insert. \n");
+        let path = file_pathonly(&lastdir);
+        let flist = file_get_dir_list(&path);
+        let varname = fltk_radio_lightbtn_menu(&flist);
+        let rpltxt = format!("§{}§", varname);
+
+        rpltxt
+    }
+
+    /*
+    pub fn qst_save(qst1: &Question, lastdir: &Rc<RefCell<String>>) {
+        let trail = lastdir.borrow().clone();
+        if trail == "" {
+            *lastdir.borrow_mut() = QUESTION_DIR.to_string();
+        }
+        //let startpath = lastdir.borrow().clone();
+
+        println!("Please choose a directory and file name for saving.");
+        let usepath = file_browse_save_fltr(lastdir, "*.qst");
+        *lastdir.borrow_mut() = usepath;  // Set the last used directory.  Need to truncate the file name.
+        qst_save_as_json(&qst1, lastdir);
+        println!("\n The question has been saved. \n");
+    }
+
+    pub fn qst_save_as_json(qst1: &Question, lastdir: &Rc<RefCell<String>>) {
+        let pathstring = lastdir.borrow().clone();
+        let path = Path::new(&pathstring);
+
+        let qst_as_json = serde_json::to_string(qst1).unwrap();
+
+        let mut file = File::create(path).expect("Could not create file!");
+
+        file.write_all(qst_as_json.as_bytes())
+            .expect("Cannot write to the file!");
+    }
+
+     */  //Old qst_save() functions
+
+    pub fn qst_read() -> Question {
+        // TODO: Should return an option or result rather than  `unwrap()` or `panic!()`.
+
+        let lastdir = LAST_DIR_USED.lock().unwrap();
+
+        println!("\n Please choose the Question file to be read.");
+        let usepath = file_fullpath(&lastdir);
+        //*lastdir.borrow_mut() = usepath.clone();  // Update lastdir.
+
+        match file_read_to_string(&usepath) {
+            Ok(contents) => {
+                let newquest = serde_json::from_str(&contents).unwrap();
+                newquest
+            }
+            Err(err) => {
+                eprintln!("\n Error reading the file: {} \n", err);
+                panic!("\n Error reading the file. \n");
+            }
+        }
+
+    }
+
+    /*
+
+        --How are you going to insert these variables into the text of the question?
+            -- You will have to use the cursor position when the user selects
+                the text being replaced by the variable.  That will be your break point.
+            -- Remember, you are entering the variable data into the question vector,
+                not the variable itself.
+                -- Only that's not true.  You need the variable itself there, somehow
+                    to use for recalculating the dynamic values.
+
+        -- Answers will be calculated from the current variable values.
+
+        -- What are you going to do about operators and how they interact, especially
+            when the operator is given in the question in verbal format?
+            -- The answer equation will have to be entered by the user.
+
+        -- And then there be equations!!!!
+
+     */  // Issues & questions
+
+
+}  // End   questions   module
+
+pub mod variable {
+    use crate::global::TypeWrapper;
+    use crate::global::TypeWrapper::*;
+    use crate::math_functions::*;
+    use crate::LAST_DIR_USED;
+    use lib_file::file_fltk::*;
+    use lib_file::file_mngmnt::{file_path_to_fname, file_read_to_string};
+    use lib_jt::{input_utilities::*, vec::*};
+    use lib_lists::lists::*;
+    use serde::{Deserialize, Serialize};
+    use std::{fs::File, io::Write};
+
+    //region Struct Section
+
+    #[derive(Debug, Serialize, Deserialize, Clone)]
+    pub struct Variable {
+        pub var_fname: String,
+        pub params: VarPrmtrs,
+        pub list_fname: String,
+        pub content: TypeWrapper,
+        pub var_type: String,
+    }
+
+    impl Variable {
+        pub fn new() -> Variable {
+            Self {
+                var_fname: "new_variable".to_string(),
+                params: VarPrmtrs::new(),
+                list_fname: "".to_string(),
+                content: Integer(0),
+                var_type: "Strings".to_string(),   // "Strings", "chars", "ints", "floats"
+            }
+        }
+    } // End Variable impl
+
+    #[derive(Debug, Serialize, Deserialize, Clone)]
+    pub struct VarPrmtrs {
+        pub is_string: bool,
+        pub is_char: bool,
+        pub is_from_list: bool,
+        pub is_int: bool,
+        pub num_min_int: i64,
+        pub num_max_int: i64,
+        pub num_min_float: f64,
+        pub num_max_float: f64,
+        pub num_dcml_places: usize,
+        pub num_comma_frmttd: bool,
+    }
+
+    impl VarPrmtrs {
+        pub fn new() -> VarPrmtrs {
+            Self {
+                is_string: false,
+                is_char: false,
+                is_from_list: false,
+                is_int: true,
+                num_min_int: 0,
+                num_max_int: 0,
+                num_min_float: 0.0,
+                num_max_float: 0.0,
+                num_dcml_places: 0,
+                num_comma_frmttd: false,  // Leave implementing this until you need to output it.
+
+                // Default values all assume that the variable is an i64.
+            }
+        }
+    } // ~~~~~ End VarPrmtrs impl ~~~~~
+
+
+    //endregion
+
+    pub fn vrbl_create(typch: &str) {
+        let mut var1 = Variable::new();
+        var1.var_type = typch.to_string();
+        vrbl_input_parameters(&mut var1);
+        vrbl_input_vardata(&mut var1);
+        vrbl_save(&mut var1);
+    }
+
+    pub fn vrbl_input_parameters(data: &mut Variable) {  // Set boolean parameters only.  Leave data alone.
+        match data.var_type.as_str() {
+            "Strings" => {  // Note that Strings should only come from a list.
+                data.params.is_string = true;
+                data.params.is_int = false;
+                data.params.is_from_list = true;
+            }
+
+            "chars" => {     // Note that characters should only come from a list.
+                data.params.is_char = true;
+                data.params.is_int = false;
+                data.params.is_from_list = true;
+            }
+
+            "ints" => {
+                data.params.num_comma_frmttd = input_bool_prompt("\n Is the value to be comma formatted?   ");
+
+                let mini_choice = input_bool_prompt("\n Is the variable contents to come from a list?   ");
+                if mini_choice {
+                    data.params.is_from_list = true;
+                    return;
+                }
+                data.params.num_min_int = input_num_prompt("\n Please enter the minimum int value:  ");
+                data.params.num_max_int = input_num_prompt("\n Please enter the maximum int value:  ");
+            }
+
+            "floats" => {
+                data.params.is_int = false;
+                data.params.num_dcml_places = input_num_prompt("\n How many decimal places are allowed?  ");
+                data.params.num_comma_frmttd = input_bool_prompt("\n Is the value to be comma formatted?   ");
+
+                let mini_choice = input_bool_prompt("\n Is the variable contents to come from a list?   ");
+                if mini_choice {
+                    data.params.is_from_list = true;
+                    return;
+                }
+                data.params.num_min_float = input_num_prompt("\n Please enter the minimum float value:  ");
+                data.params.num_max_float = input_num_prompt("\n Please enter the maximum float value:  ");
+            }
+
+            _ => { unreachable!(); }
+        }
+    }
+
+    pub fn vrbl_input_vardata(data: &mut Variable) {
+        data.var_fname = input_string_prompt("\n Please enter a title/filename for your new variable:  ");
+        vrbl_setvalues(data);
+    }
+
+    // TODO: Examine the interaction between the vrbl_save() functions.
+    pub fn vrbl_save(var1: &mut Variable) {
+        let lastdir = LAST_DIR_USED.lock().unwrap();
+        let usepath = file_browse_save_fltr(&lastdir, "Variable Files   \t*.vrbl\nText Files   \t*.txt\nList Files    \t*.lst\nAll Files    \t*.*");
+
+        // Set the LAST_DIR_USED to the new path.
+        *LAST_DIR_USED.lock().unwrap() = usepath.clone();
+
+        var1.var_fname = file_path_to_fname(&usepath);
+        vrbl_save_as_json(&var1, &usepath);
+
+        println!("\n The variable has been saved.");
+    }
+
+    pub fn vrbl_save_as_json(var: &Variable, usepath: &String) {
+        let var_as_json = serde_json::to_string(var).unwrap();
+
+        let mut file = File::create(usepath.as_str()).expect("Could not create file!");
+
+        file.write_all(var_as_json.as_bytes())
+            .expect("Cannot write to the file!");
+    }
+
+    pub fn vrbl_read() -> Variable {
+        // Should return an option or result rather than  `unwrap()`.
+
+        let lastdir = LAST_DIR_USED.lock().unwrap();
+
+        println!("\n Please choose the variable file to be used.");
+        let usepath = file_fullpath(&lastdir);
+        *LAST_DIR_USED.lock().unwrap() = usepath.clone();
+
+        match file_read_to_string(&usepath) {
+            Ok(contents) => {
+                let newvariable = serde_json::from_str(&contents).unwrap();
+                newvariable
+            }
+            Err(err) => {
+                eprintln!("\n Error reading the file: {} \n", err);
+                panic!("\n Error reading the file. \n");
+            }
+        }
+    }
+
+    /*
+    pub fn vrbl_read_nogetpath(usepath: &Rc<RefCell<String>>) -> Variable {
+        // Should return an option or result rather than  `unwrap()`.
+
+        let data = util_read_file_to_string(&usepath);
+        let newvrbl = serde_json::from_str(&data).unwrap();
+
+        newvrbl
+    }
+
+     */   // vrbl_read_nogetpath()
+
+    pub fn vrbl_setvalues(var1: &mut Variable) {
+        //let lastdir = LAST_DIR_USED.lock().unwrap();
+
+        if var1.params.is_from_list {  // The variable content is to come from a list.
+            match var1.var_type.as_str() {
+                "Strings" => {
+                    println!("\n Please choose the list you want to use.");
+                    let newlist = list_read("Strings");  // Returns a tuple (listname, List)
+                    var1.list_fname = newlist.0;  // Sets the value of the variable's listname field.
+
+                    let usevec = newlist.1.words.clone();  // Clones the list content vector.
+                    //let usevec_str = vec_string_to_str(&usevec);
+                    let item = vec_random_choice(&usevec);
+                    match item {
+                        Some(x) => {
+                            println!("\n The chosen item is:  {:?}", x);
+                            var1.content = Alphanum(x.0.to_string());
+                        },
+                        None => panic!("No item was chosen."),
+                    }
+                },
+
+                "chars" => {
+                    println!("\n Please choose a list to be read.");
+                    let newlist = list_read("chars");
+                    var1.list_fname = newlist.0;
+
+                    let item = vec_random_choice(&newlist.1.runes);
+                    match item {
+                        Some(x) => {
+                            println!("\n The chosen item is:  {:?}", x);
+                            var1.content = Letter(*x.0);
+                        },
+                        None => panic!("No item was chosen."),
+                    }
+                },
+
+                "ints" => {
+                    println!("\n Please choose a list to be read.");
+                    let newlist = list_read("ints");
+                    var1.list_fname = newlist.0;
+
+                    let item = vec_random_choice(&newlist.1.intsigned);
+                    match item {
+                        Some(x) => {
+                            println!("\n The chosen item is:  {:?}", x);
+                            var1.content = Integer(*x.0);
+                        },
+                        None => panic!("No item was chosen."),
+                    }
+                },
+
+                "floats" => {
+                    println!("\n Please choose a list to be read.");
+                    let newlist = list_read("floats");
+                    var1.list_fname = newlist.0;
+
+                    let item = vec_random_choice(&newlist.1.decimals);
+                    match item {
+                        Some(x) => {
+                            println!("\n The chosen item is:  {:?}", x);
+                            var1.content = Floating(*x.0);
+                        },
+                        None => panic!("No item was chosen."),
+                    }
+                },
+
+                _ => {}
+            }
+        } else {
+            if var1.params.is_int {
+                let numint: i64 = math_gen_random_num(var1.params.num_min_int, var1.params.num_max_int);
+                var1.content = Integer(numint);
+            } else {  // The content is a float.
+                let mut numfloat: f64 = math_gen_random_num(var1.params.num_min_float, var1.params.num_max_float);
+                numfloat = math_round_to_place_f64(&numfloat, var1.params.num_dcml_places);
+                var1.content = Floating(numfloat);
+            }
+        }
+    }
+
+    pub fn vrbl_recalc() {
+        let mut usevar = vrbl_read();
+
+        println!("\n The variable before recalc is: \n {:?}", usevar);
+
+        vrbl_setvalues(&mut usevar);
+        vrbl_save(&mut usevar);
+
+        println!("\n The variable after recalc is: \n {:?} \n", usevar);
+
+    }
+} // End   variable   module
+
+pub mod menus {
+    use crate::{banks::*, questions::*, variable::*};
+    use fltk::app::quit;
+    use fltk::enums::{Color, Shortcut};
+    use fltk::prelude::{MenuExt, WidgetBase, WidgetExt};
+    use fltk::menu;
+    use fltk::window::Window;
+    use lib_lists::lists::*;
+
+    pub fn qbnk_menubar(primwin: &mut Window) -> menu::MenuBar {
+
+        let mut menubar = menu::MenuBar::new(0, 0, primwin.width(), 40, "");
+
+        //region File section
+
+        menubar.add(
+            "File/Print/Question Bank\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            |_| println!("Printing a new Question Bank."),
+        );
+        menubar.add(
+            "File/Print/Question\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            |_| println!("Printing a new Question."),
+        );
+        menubar.add(
+            "File/Print/Variable\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            |_| println!("Printing a new Variable."),
+        );
+        menubar.add(
+            "File/Print/List\t",  // Where does versioning come in?
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            |_| println!("Printing a new List."),
+        );
+        menubar.add(
+            "File/Save\t", // Save always focuses on the Question Bank.
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            |_| println!("Saving a Question Bank."),
+        );
+        menubar.add(
+            "File/Save-as\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            |_| println!("Saving a Question Bank with a new name."),
+        );
+
+        let quit_idx = menubar.add(
+            "File/Quit\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            |_| {
+                quit();
+            },
+        );
+        menubar.at(quit_idx).unwrap().set_label_color(Color::Red);
+        //endregion
+
+        //region Bank section
+
+        menubar.add(
+            "Bank/New\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            move |_| {
+                bnk_create();
+                bnk_refresh_widgets();
+            },
+        );
+
+        menubar.add(
+            "Bank/Open\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            move |_| {
+                bnk_read();
+                bnk_refresh_widgets();
+            },
+        );
+
+        // TODO: Add  ctrl-s  as option for saving.
+        // TODO: Right now  Save  and  Save-As  are the same thing.
+        //          Differentiate them.
+
+        menubar.add(
+            "Bank/Save\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            |_| {
+                bnk_save();
+                println!("/n The question bank has been saved. \n")
+            },
+        );
+        menubar.add(
+            "Bank/Save-as\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            |_| {
+                bnk_save();
+                println!("/n The question bank has been saved. \n")
+            },        );
+
+
+        menubar.add(
+            "Bank/Recalculate\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            |_| println!("\n Not yet implemented. \n"),
+        );
+
+
+        menubar.add(
+            "Bank/Export\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            |_| println!("\n Not yet implemented. \n"),
+        );
+
+        //endregion
+
+        //region Question Section
+
+        menubar.add(
+            "Question/New\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            move |_| {
+                qst_create();
+                bnk_refresh_widgets();
+
+                // Keep the window display open after this function finishes.
+              //  while primwin1.shown() {
+              //      app::wait();
+             //   }
+            },
+        );
+
+        menubar.add(
+            "Question/Recalculate\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            |_| println!("Not yet implemented.  Recalculating dynamic content in a Question."),
+        );
+
+        //endregion
+
+        //region Variable Section
+
+        menubar.add(
+            "Variable/New/String\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            move |_| {
+                vrbl_create("Strings");
+            },
+        );
+
+        menubar.add(
+            "Variable/New/Characters\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            move |_| {
+                vrbl_create("chars");
+            },
+        );
+
+        menubar.add(
+            "Variable/New/Integers\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            move |_| {
+                vrbl_create("ints");
+            },
+        );
+
+        menubar.add(
+            "Variable/New/Floats\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            move |_| {
+                vrbl_create("floats");
+            },
+        );
+
+        menubar.add(
+            "Variable/Recalculate\t",  // Does this make sense as a user task?  Yes, definitely.
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            move |_| vrbl_recalc(),
+        );
+
+        //endregion
+
+        //region List Section
+
+        menubar.add(
+            "List/New/Strings\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            move |_| {
+                list_create("Strings");
+            },
+        );
+
+        menubar.add(
+            "List/New/Characters\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            move |_| {
+                list_create("chars");
+            },
+        );
+
+        menubar.add(
+            "List/New/Integers\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            move |_| {
+                list_create("ints");
+            },
+        );
+
+        menubar.add(
+            "List/New/Floats\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            move |_| {
+                list_create("floats");
+            },
+        );
+
+        menubar.add(
+            "List/Edit\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            |_| println!("\n List editing will be added in a later iteration. \n"),
+        );
+
+        // -------  End list section
+        //endregion
+
+        menubar
+    }
+} //  End   menus  module
+
+pub mod math_functions {
+    use num_traits::pow;
+    use rand::distributions::uniform::SampleUniform;
+    use rand::{thread_rng, Rng};
+
+    pub fn math_round_to_place_f64(num: &f64, place: usize) -> f64 {
+        let factor = pow(10, place);
+        let rounded = (num * factor as f64).round() / factor as f64;
+        return rounded;
+    }
+
+    pub fn math_gen_random_num<T: SampleUniform + PartialOrd>(min: T, max: T) -> T {
+        let mut rng = thread_rng();
+        rng.gen_range(min..=max)
+    }
+
+    /*
+    fn main() {
+        let choice: i64 = math_gen_random_num(-9, 9);
+
+        println!("\n Your random number is:   {} \n", choice);
+    }
+
+ */ // Example usage math_gen_random_num()
+
+
+} // End   math_functions   module.
+
+pub mod misc {
+    use fltk::prelude::DisplayExt;
+    use fltk::text::TextEditor;
+
+    pub fn get_text_from_editor(editor: &TextEditor) -> String {
+        if let Some(buffer) = editor.buffer() {
+            let text = buffer.text(); // Retrieve the text from the associated buffer
+
+            println!("\n The text from the editor is: {} \n", buffer.text());
+
+            return text;
+
+        } else {
+            String::new() // If no buffer is set, return an empty string
+        }
+    }
+
+}
+

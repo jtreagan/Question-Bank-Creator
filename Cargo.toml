@@ -1,0 +1,29 @@
+[package]
+name = "qbnk_rbld4"
+version = "0.1.0"
+edition = "2021"
+
+description = "Question Bank Creator.  This program is targeted at teachers & homeschool parents and is especially useful for teaching math.  It allows the construction of test/worksheet/quiz questions that contain dynamic content.  The teacher can create variables that generate values/strings using random or pseudo-random criteria set by the user.  Once constructed, the question is stored in a file (or 'question bank') for later access as needed.  Teachers can also make the program/questions available to students for student directed practice."
+
+[dependencies]
+#Standard crates
+rand = "0.8.5"
+
+# Non-standard crates
+num-traits = "0.2.19"
+serde_json = "1.0.120"
+serde = { version = "1.0.204", features = ["derive"] }
+fltk = { version = "^1.4.32", features = ["fltk-bundled"] }
+
+# For use in the function   fn activity_menu() stored in jt_lib.rs
+#dialoguer = { version = "0.11.0", features = ["completion"] }
+#console = "0.15.8"
+
+# Reagan created crates
+lib_jt = {path = "/home/jtreagan/programming/rust/mine/lib_jt/"}
+lib_file = {path = "/home/jtreagan/programming/rust/mine/lib_file"}
+lib_input_fltk = {path = "/home/jtreagan/programming/rust/mine/lib_input_fltk/"} 
+lib_lists = {path = "/home/jtreagan/programming/rust/mine/lib_lists/"}
+lib_utils = {path = "/home/jtreagan/programming/rust/mine/lib_utils/"}
+lib_myfltk = {path = "/home/jtreagan/programming/rust/mine/lib_myfltk/"}
+
