@@ -29,7 +29,6 @@
 
 // region Credits Constants
 
-
 const _AUTHOR: &str = "John T. Reagan";
 const _DESCRIPTION: &str = "Create and edit question banks with dynamic content.  \n";
 const _LICENSE: &str = "MIT";
@@ -103,7 +102,7 @@ pub fn onopen_popup(primwin: &Window) -> Window {
 pub fn make_title_txtedtr(primwin: &mut Window) {
 
     // todo: Add a line, smaller font, below the main title for
-    //          a subtitle or maybe the text being used.
+    //      a subtitle or maybe the title of the textbook being used.
 
     let usebank: Bank;
     let mut wdgts: Wdgts;
@@ -123,6 +122,8 @@ pub fn make_title_txtedtr(primwin: &mut Window) {
 
     wdgts.title_editbox = ted.clone();  // Store the widgit in the widget struct.
     primwin.add(&ted.clone());
+
+    *WIDGETS.lock().unwrap() = wdgts.clone();    // Update the WIDGET global variable.
 
     // todo: It would be nice to center and bold the text, but that is really
     //      difficult to do, so leave for later.
@@ -145,6 +146,8 @@ pub fn make_scrollgroup(primwin: &mut Window) -> Scroll {
     // Add scroll to the Wdgts struct & window.
     wdgts.scroll = scroll.clone();
     //primwin.add(&scroll.clone());
+
+    *WIDGETS.lock().unwrap() = wdgts.clone();    // Update the WIDGET global variable.
 
     scroll
 }

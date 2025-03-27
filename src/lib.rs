@@ -299,10 +299,6 @@ pub mod banks {
     }
 
     pub fn bnk_refresh_title() {
-
-        app::awake();
-
-
         let usebank: Bank;
         let mut wdgts: Wdgts;
         {
@@ -311,17 +307,11 @@ pub mod banks {
         }  // Access global structs.
 
         let mut buf = TextBuffer::default();
-
-        //buf.set_text("NEW TEXT NEW TEXT NEW TEXT");  // Uses the title from the current bank.
-
         buf.set_text(usebank.bank_title.as_str());  // Uses the title from the current bank.
-
         wdgts.title_editbox.set_buffer(buf);
-        //wdgts.title_editbox.redraw();
 
         let title_text = wdgts.title_editbox.buffer().unwrap().text();
         println!("\n Waypoint 4. The title edit box should now contain: \n {:?} \n", title_text);
-
     }
 
     pub fn bnk_save() {

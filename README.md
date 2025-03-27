@@ -33,7 +33,7 @@ Thus the problem and the skills required to solve it remain essentially the same
 
 ## Dependencies
 
-Note that this app is not yet usable.  The project is currently being developed in the Rust language and the Linux operating system.  It uses the following crates found in the Rust language's crates.io.
+Note that this app is not yet usable.  The project is currently being developed in the Rust language using the Linux operating system.  It uses the following crates found in the Rust language's crates.io.
    
    * serde-json
    * fltk-rs
