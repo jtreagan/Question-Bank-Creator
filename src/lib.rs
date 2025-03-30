@@ -713,9 +713,9 @@ pub mod variable {
     use lib_file::file_fltk::*;
     use lib_file::file_mngmnt::{file_path_to_fname, file_read_to_string};
     use lib_jt::{input_utilities::*, vec::*};
-    use lib_lists::lists::*;
     use serde::{Deserialize, Serialize};
     use std::{fs::File, io::Write};
+    use crate::lists::list_read;
 
     //region Struct Section
 
@@ -983,6 +983,154 @@ pub mod variable {
     }
 } // End   variable   module
 
+pub mod lists {
+    use std::fs::File;
+    use std::io::Write;
+    use fltk::app::App;
+    use lib_file::file_fltk::{file_browse_save_fltr, file_fullpath_fltr};
+    use lib_file::file_mngmnt::file_read_to_string;
+    use lib_input_fltk::input::{input_charvec, input_f64vec, input_i64vec, input_strvec};
+    use serde::{Deserialize, Serialize};
+    use crate::{APP_FLTK, LAST_DIR_USED};
+
+    // region Struct section
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct List {
+        pub words: Vec<String>,
+        pub runes: Vec<char>,
+        pub intsigned: Vec<i64>,
+        pub decimals: Vec<f64>,
+        pub typechoice: String, // "Strings", "chars", "ints", "floats"
+    }
+
+    impl List {
+        pub fn new() -> List {
+            Self {
+                words: Vec::new(),
+                runes: Vec::new(),
+                intsigned: Vec::new(),
+                decimals: Vec::new(),
+                typechoice: "Strings".to_string(),
+            }
+        }
+    }  // ----------  End List impl ----------
+
+    // endregion
+
+    pub fn list_create(typech: &str) {
+        let mut app = App::default();
+        {
+            app = APP_FLTK.lock().unwrap().clone();
+        }
+
+        let mut newlist = List::new();
+        newlist.typechoice = typech.to_string();
+
+        match typech {
+            "String" | "Strings" => {     // String
+                let uselist = input_strvec(&app, "Please enter a string.", 790, 300);
+                newlist.words = uselist.clone();
+                list_save(&newlist);
+            }
+
+            "char" | "chars" => {     // char
+                let uselist = input_charvec(&app, "Please enter a character." );
+                newlist.runes = uselist.clone();
+                list_save(&newlist);
+            }
+
+            "int" | "ints" => {     // i64
+                let uselist = input_i64vec(&app, "Please enter an integer." );
+                newlist.intsigned = uselist.clone();
+                list_save(&newlist);
+            }
+
+            "float" | "floats" => {     // f64
+
+                let uselist = input_f64vec(&app, "Please enter a floating point number.");
+                newlist.decimals = uselist.clone();
+                list_save(&newlist);
+            }
+
+            _ => {
+                panic!("\n\n No match found!  Fix it!!\n\n");
+            }
+        }
+
+        // Note that the function saves the list, but does not return it.
+    }
+
+    pub fn list_read(typech: &str) -> (String, List) {
+
+        let mut startdir = String::new();
+        {
+            startdir = LAST_DIR_USED.lock().unwrap().clone();
+        }
+
+        // TODO: Should return an option or result rather than  `unwrap()` or `panic!()`.
+        // TODO: This has not been tested after the last modifications were made.
+
+        let readlist = loop {
+            let usename = file_fullpath_fltr(&startdir, "*.lst");
+            *LAST_DIR_USED.lock().unwrap() = usename.clone();
+
+            match file_read_to_string(&usename) {
+                Ok(contents) => {
+                    let newlist = serde_json::from_str(&contents).unwrap();
+                    let typchk = list_check_typematch(&newlist, typech);
+                    if !typchk { continue }
+                    else { break (usename, newlist)}
+                }
+                Err(err) => {
+                    eprintln!("\n Error reading the file: {} \n", err);
+                    panic!("\n Error reading the file. \n");
+                }
+            }
+        };
+
+        readlist
+    }
+    // Function returns tuple containing the file name that was read
+    //      along with the reconstituted list.
+
+    pub fn list_edit() {
+
+        println!("\n Someday I'll write this function. \n");
+    }    // This function to be finished in future iteration.
+
+    pub fn list_save(list: &List) -> String {
+
+        let startdir = LAST_DIR_USED.lock().unwrap().clone(); // Access the last used directory.
+
+        let path = file_browse_save_fltr(&startdir, "List Files    \t*.lst\nVariable Files   \t*.vrbl\nText Files   \t*.txt\nAll Files");
+        *LAST_DIR_USED.lock().unwrap() = path.clone();  // Store the current path in global.
+
+        list_save_as_json(&list, &path);
+
+        path
+    }
+
+    pub fn list_save_as_json(list: &List, fname: &str) {
+        let list_as_json = serde_json::to_string(list).unwrap();
+
+        let mut file = File::create(fname).expect("Could not create file!");
+
+        file.write_all(list_as_json.as_bytes())
+            .expect("Cannot write to the file!");
+    }
+
+    pub fn list_check_typematch(uselist: &List, typech: &str) -> bool {
+        if uselist.typechoice.as_str() != typech {
+            println!("\n The data type of that list does not match your typechoice. \n");
+            println!("Please choose a different list file. \n");
+            false
+        } else { true }
+    }
+
+
+
+}  // End  lists module
+
 pub mod menus {
     use crate::{banks::*, questions::*, variable::*};
     use fltk::app::quit;
@@ -990,7 +1138,7 @@ pub mod menus {
     use fltk::prelude::{MenuExt, WidgetBase, WidgetExt};
     use fltk::menu;
     use fltk::window::Window;
-    use lib_lists::lists::*;
+    use crate::lists::list_create;
 
     pub fn qbnk_menubar(primwin: &mut Window) -> menu::MenuBar {
 
@@ -1280,139 +1428,4 @@ pub mod misc {
 
 }
 
-pub mod lists {
-    use std::fs::File;
-    use lib_file::file_fltk::{file_browse_save_fltr, file_fullpath_fltr};
-    use lib_file::file_mngmnt::file_read_to_string;
-    use lib_input_fltk::input::{input_charvec, input_f64vec, input_i64vec, input_strvec};
-    use serde::{Deserialize, Serialize};
-
-    // region Struct section
-    #[derive(Debug, Serialize, Deserialize)]
-    pub struct List {
-        pub words: Vec<String>,
-        pub runes: Vec<char>,
-        pub intsigned: Vec<i64>,
-        pub decimals: Vec<f64>,
-        pub typechoice: String, // "Strings", "chars", "ints", "floats"
-    }
-
-    impl List {
-        pub fn new() -> List {
-            Self {
-                words: Vec::new(),
-                runes: Vec::new(),
-                intsigned: Vec::new(),
-                decimals: Vec::new(),
-                typechoice: "Strings".to_string(),
-            }
-        }
-    }  // ----------  End List impl ----------
-
-    // endregion
-
-    pub fn list_create(typech: &str) {
-        let mut newlist = lib_lists::lists::List::new();
-        newlist.typechoice = typech.to_string();
-
-        match typech {
-            "String" | "Strings" => {     // String
-                let uselist = input_strvec(&app, "Please enter a string.", 790, 300);
-                newlist.words = uselist.clone();
-                lib_lists::lists::list_save(&newlist);
-            }
-
-            "char" | "chars" => {     // char
-                let uselist = input_charvec("Please enter a character." );
-                newlist.runes = uselist.clone();
-                lib_lists::lists::list_save(&newlist);
-            }
-
-            "int" | "ints" => {     // i64
-                let uselist = input_i64vec("Please enter an integer." );
-                newlist.intsigned = uselist.clone();
-                lib_lists::lists::list_save(&newlist);
-            }
-
-            "float" | "floats" => {     // f64
-
-                let uselist = input_f64vec("Please enter a floating point number.");
-                newlist.decimals = uselist.clone();
-                lib_lists::lists::list_save(&newlist);
-            }
-
-            _ => {
-                panic!("\n\n No match found!  Fix it!!\n\n");
-            }
-        }
-
-        // Note that the function saves the list, but does not return it.
-    }
-
-    pub fn list_read(typech: &str) -> (String, List) {
-
-        let startdir = LAST_DIR_USED.lock().unwrap().clone();
-
-        // TODO: Should return an option or result rather than  `unwrap()` or `panic!()`.
-        // TODO: This has not been tested after the last modifications were made.
-        let redlist = loop {
-            let usename = file_fullpath_fltr(&startdir, "*.lst");
-            *LAST_DIR_USED.lock().unwrap() = usename.clone();
-
-            match file_read_to_string(&usename) {
-                Ok(contents) => {
-                    let newlist = serde_json::from_str(&contents).unwrap();
-                    let typchk = lib_lists::lists::list_check_typematch(&newlist, typech);
-                    if !typchk { continue }
-                    else { break (usename, newlist)}
-                }
-                Err(err) => {
-                    eprintln!("\n Error reading the file: {} \n", err);
-                    panic!("\n Error reading the file. \n");
-                }
-            }
-        };
-
-        redlist
-    }
-    // Function returns tuple containing the file name that was read
-    //      along with the reconstituted list.
-
-    pub fn list_edit() {
-
-        println!("\n Someday I'll write this function. \n");
-    }    // This function to be finished in future iteration.
-
-    pub fn list_save(list: &List) -> String {
-
-        let startdir = LAST_DIR_USED.lock().unwrap().clone(); // Access the last used directory.
-
-        let path = file_browse_save_fltr(&startdir, "List Files    \t*.lst\nVariable Files   \t*.vrbl\nText Files   \t*.txt\nAll Files");
-        *LAST_DIR_USED.lock().unwrap() = path.clone();  // Store the current path in global.
-
-        lib_lists::lists::list_save_as_json(&list, &path);
-
-        path
-    }
-
-    pub fn list_save_as_json(list: &List, fname: &str) {
-        let list_as_json = serde_json::to_string(list).unwrap();
-
-        let mut file = File::create(fname).expect("Could not create file!");
-
-        file.write_all(list_as_json.as_bytes())
-            .expect("Cannot write to the file!");
-    }
-
-    pub fn list_check_typematch(uselist: &List, typech: &str) -> bool {
-        if uselist.typechoice.as_str() != typech {
-            println!("\n The data type of that list does not match your typechoice. \n");
-            println!("Please choose a different list file. \n");
-            false
-        } else { true }
-    }
-
-
-
-}  // End  lists module
 
