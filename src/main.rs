@@ -42,9 +42,9 @@ use fltk::enums::{Color};
 use fltk::group::Scroll;
 use fltk::text::{TextBuffer, TextDisplay, TextEditor};
 use lib_myfltk::fltkutils::fltk_popup_2btn;
-use qbnk_rbld4::menus::*;
-use qbnk_rbld4::{APP_FLTK, CURRENT_BANK, DEVELOPMENT_VERSION, PROGRAM_TITLE, QDISP_HEIGHT, VERSION, WIDGETS};
-use qbnk_rbld4::{banks::*, Wdgts, questions::qst_edit};
+use qbnk_rbld5::menus::*;
+use qbnk_rbld5::{APP_FLTK, CURRENT_BANK, DEVELOPMENT_VERSION, PROGRAM_TITLE, QDISP_HEIGHT, VERSION, WIDGETS};
+use qbnk_rbld5::{banks::*, Wdgts, questions::qst_edit};
 
 fn main() {
     let app = App::default();
@@ -57,14 +57,14 @@ fn main() {
     make_title_txtedtr(&mut primwin);                                         // Add a title TextEditor.
     make_scrollgroup(&mut primwin);                                           // Add a scrollbar.
 
-    primwin.end();
-    primwin.show();
-
     let mut initpopup = onopen_popup(&primwin);                                        // Ensures that a bank is loaded.
     initpopup.make_modal(true);
     initpopup.set_color(Color::Red);
     initpopup.end();
     initpopup.show();
+
+    primwin.end();
+    primwin.show();
 
     app.run().unwrap();
 }
@@ -95,7 +95,6 @@ pub fn onopen_popup(primwin: &Window) -> Window {
 
     let pop = fltk_popup_2btn(&primwin, Box::new(bttn_newbank), "Create new bank",
                     Box::new(bttn_openbank), "Open existing bank");
-
     pop
 }
 

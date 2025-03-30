@@ -22,12 +22,9 @@
 use crate::banks::Bank;
 use fltk::app::App;
 use fltk::group::Scroll;
-//use fltk::prelude::{GroupExt, WidgetExt};
 use fltk::text::{TextDisplay, TextEditor};
 use fltk::utils::oncelock::Lazy;
-//use fltk::window::Window;
 use std::sync::Mutex;
-//use fltk::enums::Color;
 
 // region  Global Constants
 
@@ -96,7 +93,7 @@ pub mod global {
 
 pub mod banks {
     use crate::misc::get_text_from_editor;
-    use crate::{questions::*, Wdgts, BANK_DIR, CURRENT_BANK, LAST_DIR_USED, WIDGETS};
+    use crate::{questions::*, Wdgts, APP_FLTK, BANK_DIR, CURRENT_BANK, LAST_DIR_USED, WIDGETS};
     use fltk::app::set_font_size;
     use fltk::enums::{Color, FrameType};
     use fltk::prelude::{DisplayExt, GroupExt, WidgetBase, WidgetExt};
@@ -160,19 +157,25 @@ pub mod banks {
 
 
     pub fn bnk_create() {
-        let usetitle = input_string("Please enter the bank's title.", 300, 90);
+        let mut app = app::App::default();
+        {
+            app = APP_FLTK.lock().unwrap().clone();
+        }
+
+        let usetitle = input_string(&app, "Please enter the bank's title.", 300, 90);
+
         let mut newbank = Bank::new();
 
         // Pass the inputted values into the struct fields.
         newbank.bank_title = usetitle.clone();
-        newbank.associated_textbook = input_string("If you are using an associated textbook \n please enter its info. \n Press  Enter  if no textbook is being used.",
+        newbank.associated_textbook = input_string(&app, "If you are using an associated textbook \n please enter its info. \n Press  Enter  if no textbook is being used.",
                                                    800, 200);
         // Pass the new bank into CURRENT_BANK
         *CURRENT_BANK.lock().unwrap() = newbank.clone();
 
         // Save and display the bank.
         bnk_save();
-        bnk_display();
+        bnk_refresh_title();
     }
 
     pub fn bnk_display() -> Window {
@@ -276,7 +279,6 @@ pub mod banks {
         //endregion
 
         // region Read the chosen file.
-
         let usebank: Bank;
         match file_read_to_string(&usepath) {
             Ok(contents) => {
@@ -382,7 +384,7 @@ pub mod banks {
 pub mod questions {
     use crate::banks::{bnk_display, bnk_save, Bank};
     use crate::variable::*;
-    use crate::{CURRENT_BANK, LAST_DIR_USED, VARIABLE_DIR};
+    use crate::{APP_FLTK, CURRENT_BANK, LAST_DIR_USED, VARIABLE_DIR};
     use fltk::app::set_font_size;
     use fltk::enums::{Color, Shortcut};
     use fltk::prelude::{DisplayExt, GroupExt, MenuExt, WidgetBase, WidgetExt, WindowExt};
@@ -436,10 +438,14 @@ pub mod questions {
         qst_fill_varvec_parsetext(&mut newquest);
 
                 // Answer will eventually need to be calculated.
-        //let app = APP_FLTK.lock().unwrap();
-        newquest.answer = input_string("Please input the question's answer:  ", 790, 300);
-        newquest.objectives = input_strvec("Please enter the question objectives:  ", 790, 300);
-        newquest.prereqs = input_strvec("Please enter the question prerequisites:  ", 790, 300);
+        let mut app = app::App::default();
+        {
+            let app = APP_FLTK.lock().unwrap();
+        }
+
+        newquest.answer = input_string(&app, "Please input the question's answer:  ", 790, 300);
+        newquest.objectives = input_strvec(&app, "Please enter the question objectives:  ", 790, 300);
+        newquest.prereqs = input_strvec(&app, "Please enter the question prerequisites:  ", 790, 300);
 // endregion
 
 // region Save and store the data
@@ -459,9 +465,6 @@ pub mod questions {
         bnk_save();
 // endregion
 
-        // TODO: Need to close the old display window before opening a new one.
-        //          or is there a way to simply refresh the old disp window?
-
         //bnk_display();
     }
 
@@ -477,10 +480,14 @@ pub mod questions {
         qst_fill_varvec_parsetext(&mut editqst);  // Need to clear the vector first.
 
         // Answer will eventually need to be calculated.
-        //let app = APP_FLTK.lock().unwrap();
-        editqst.answer = input_string("Please input the question's answer:  ", 790, 300);
-        editqst.objectives = input_strvec("Please enter the question objectives:  ", 790, 300);
-        editqst.prereqs = input_strvec("Please enter the question prerequisites:  ", 790, 300);
+        let mut app = app::App::default();
+        {
+            let app = APP_FLTK.lock().unwrap();
+        }
+
+        editqst.answer = input_string(&app,"Please input the question's answer:  ", 790, 300);
+        editqst.objectives = input_strvec(&app,"Please enter the question objectives:  ", 790, 300);
+        editqst.prereqs = input_strvec(&app,"Please enter the question prerequisites:  ", 790, 300);
 
         // Push the question to the vector in the bank and save the bank.
         let mut usebank = CURRENT_BANK.lock().unwrap();
@@ -1272,4 +1279,140 @@ pub mod misc {
     }
 
 }
+
+pub mod lists {
+    use std::fs::File;
+    use lib_file::file_fltk::{file_browse_save_fltr, file_fullpath_fltr};
+    use lib_file::file_mngmnt::file_read_to_string;
+    use lib_input_fltk::input::{input_charvec, input_f64vec, input_i64vec, input_strvec};
+    use serde::{Deserialize, Serialize};
+
+    // region Struct section
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct List {
+        pub words: Vec<String>,
+        pub runes: Vec<char>,
+        pub intsigned: Vec<i64>,
+        pub decimals: Vec<f64>,
+        pub typechoice: String, // "Strings", "chars", "ints", "floats"
+    }
+
+    impl List {
+        pub fn new() -> List {
+            Self {
+                words: Vec::new(),
+                runes: Vec::new(),
+                intsigned: Vec::new(),
+                decimals: Vec::new(),
+                typechoice: "Strings".to_string(),
+            }
+        }
+    }  // ----------  End List impl ----------
+
+    // endregion
+
+    pub fn list_create(typech: &str) {
+        let mut newlist = lib_lists::lists::List::new();
+        newlist.typechoice = typech.to_string();
+
+        match typech {
+            "String" | "Strings" => {     // String
+                let uselist = input_strvec(&app, "Please enter a string.", 790, 300);
+                newlist.words = uselist.clone();
+                lib_lists::lists::list_save(&newlist);
+            }
+
+            "char" | "chars" => {     // char
+                let uselist = input_charvec("Please enter a character." );
+                newlist.runes = uselist.clone();
+                lib_lists::lists::list_save(&newlist);
+            }
+
+            "int" | "ints" => {     // i64
+                let uselist = input_i64vec("Please enter an integer." );
+                newlist.intsigned = uselist.clone();
+                lib_lists::lists::list_save(&newlist);
+            }
+
+            "float" | "floats" => {     // f64
+
+                let uselist = input_f64vec("Please enter a floating point number.");
+                newlist.decimals = uselist.clone();
+                lib_lists::lists::list_save(&newlist);
+            }
+
+            _ => {
+                panic!("\n\n No match found!  Fix it!!\n\n");
+            }
+        }
+
+        // Note that the function saves the list, but does not return it.
+    }
+
+    pub fn list_read(typech: &str) -> (String, List) {
+
+        let startdir = LAST_DIR_USED.lock().unwrap().clone();
+
+        // TODO: Should return an option or result rather than  `unwrap()` or `panic!()`.
+        // TODO: This has not been tested after the last modifications were made.
+        let redlist = loop {
+            let usename = file_fullpath_fltr(&startdir, "*.lst");
+            *LAST_DIR_USED.lock().unwrap() = usename.clone();
+
+            match file_read_to_string(&usename) {
+                Ok(contents) => {
+                    let newlist = serde_json::from_str(&contents).unwrap();
+                    let typchk = lib_lists::lists::list_check_typematch(&newlist, typech);
+                    if !typchk { continue }
+                    else { break (usename, newlist)}
+                }
+                Err(err) => {
+                    eprintln!("\n Error reading the file: {} \n", err);
+                    panic!("\n Error reading the file. \n");
+                }
+            }
+        };
+
+        redlist
+    }
+    // Function returns tuple containing the file name that was read
+    //      along with the reconstituted list.
+
+    pub fn list_edit() {
+
+        println!("\n Someday I'll write this function. \n");
+    }    // This function to be finished in future iteration.
+
+    pub fn list_save(list: &List) -> String {
+
+        let startdir = LAST_DIR_USED.lock().unwrap().clone(); // Access the last used directory.
+
+        let path = file_browse_save_fltr(&startdir, "List Files    \t*.lst\nVariable Files   \t*.vrbl\nText Files   \t*.txt\nAll Files");
+        *LAST_DIR_USED.lock().unwrap() = path.clone();  // Store the current path in global.
+
+        lib_lists::lists::list_save_as_json(&list, &path);
+
+        path
+    }
+
+    pub fn list_save_as_json(list: &List, fname: &str) {
+        let list_as_json = serde_json::to_string(list).unwrap();
+
+        let mut file = File::create(fname).expect("Could not create file!");
+
+        file.write_all(list_as_json.as_bytes())
+            .expect("Cannot write to the file!");
+    }
+
+    pub fn list_check_typematch(uselist: &List, typech: &str) -> bool {
+        if uselist.typechoice.as_str() != typech {
+            println!("\n The data type of that list does not match your typechoice. \n");
+            println!("Please choose a different list file. \n");
+            false
+        } else { true }
+    }
+
+
+
+}  // End  lists module
 

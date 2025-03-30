@@ -207,21 +207,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lib_lists"
-version = "0.1.0"
-dependencies = [
- "fltk",
- "lib_file",
- "lib_input_fltk",
- "lib_jt",
- "lib_utils",
- "num-traits",
- "rand 0.8.5",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "lib_myfltk"
 version = "0.1.0"
 dependencies = [
@@ -303,14 +288,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "qbnk_rbld4"
+name = "qbnk_rbld5"
 version = "0.1.0"
 dependencies = [
  "fltk",
  "lib_file",
  "lib_input_fltk",
  "lib_jt",
- "lib_lists",
  "lib_myfltk",
  "lib_utils",
  "num-traits",

@@ -1,5 +1,5 @@
 [package]
-name = "qbnk_rbld4"
+name = "qbnk_rbld5"
 version = "0.1.0"
 edition = "2021"
 
@@ -23,7 +23,17 @@ fltk = { version = "^1.4.32", features = ["fltk-bundled"] }
 lib_jt = {path = "/home/jtreagan/programming/rust/mine/lib_jt/"}
 lib_file = {path = "/home/jtreagan/programming/rust/mine/lib_file"}
 lib_input_fltk = {path = "/home/jtreagan/programming/rust/mine/lib_input_fltk/"} 
-lib_lists = {path = "/home/jtreagan/programming/rust/mine/lib_lists/"}
 lib_utils = {path = "/home/jtreagan/programming/rust/mine/lib_utils/"}
 lib_myfltk = {path = "/home/jtreagan/programming/rust/mine/lib_myfltk/"}
+
+
+#No longer needed
+
+#lib_lists = {path = "/home/jtreagan/programming/rust/mine/lib_lists/"}
+
+
+
+
+
+
 
