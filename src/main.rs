@@ -57,14 +57,14 @@ fn main() {
     make_title_txtedtr(&mut primwin);                                         // Add a title TextEditor.
     make_scrollgroup(&mut primwin);                                           // Add a scrollbar.
 
+    primwin.end();
+    primwin.show();
+
     let mut initpopup = onopen_popup(&primwin);                                        // Ensures that a bank is loaded.
-    initpopup.make_modal(true);
+    //initpopup.make_modal(true);
     initpopup.set_color(Color::Red);
     initpopup.end();
     initpopup.show();
-
-    primwin.end();
-    primwin.show();
 
     app.run().unwrap();
 }

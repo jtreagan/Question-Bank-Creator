@@ -162,7 +162,11 @@ pub mod banks {
             app = APP_FLTK.lock().unwrap().clone();
         }
 
+        println!("\n Waypoint 1.  Just before calling  input_string(). \n");
+
         let usetitle = input_string(&app, "Please enter the bank's title.", 300, 90);
+
+        println!("\n Waypoint 2.  Just after calling  input_string(). \n");
 
         let mut newbank = Bank::new();
 
@@ -171,8 +175,9 @@ pub mod banks {
         newbank.associated_textbook = input_string(&app, "If you are using an associated textbook \n please enter its info. \n Press  Enter  if no textbook is being used.",
                                                    800, 200);
         // Pass the new bank into CURRENT_BANK
-        *CURRENT_BANK.lock().unwrap() = newbank.clone();
-
+        {
+            *CURRENT_BANK.lock().unwrap() = newbank.clone();
+        }
         // Save and display the bank.
         bnk_save();
         bnk_refresh_title();
