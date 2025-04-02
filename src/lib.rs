@@ -144,13 +144,19 @@ pub mod banks {
             wdgts = WIDGETS.lock().unwrap().clone();
         }  // Load the global structs.
 
-        // Place the title box buffer in the bank data struct.
-        usebank.bank_title = get_text_from_editor(&wdgts.title_editbox);
+        bnk_refresh_title();
+
+        println!("\n Waypoint 1.  Just before refresh wdgts for-loop. \n");
 
         // For loop through quest display boxes re-adding them to the scroll group.
         for qstn_box in wdgts.qstn_boxes.iter() {
+
+            println!("\n In wdgts for-loop qstn_box = {:?} \n", qstn_box);
+
             wdgts.scroll.add(qstn_box);
         }
+
+        println!("\n Waypoint 2.  Just after refresh wdgts for-loop. \n");
 
         wdgts.scroll.redraw();
     }
@@ -301,8 +307,7 @@ pub mod banks {
 
         // Pass the new bank into CURRENT_BANK
         *CURRENT_BANK.lock().unwrap() = usebank.clone();
-
-        bnk_refresh_title();
+        make_question_boxes()
     }
 
     pub fn bnk_refresh_title() {
@@ -318,7 +323,6 @@ pub mod banks {
         wdgts.title_editbox.set_buffer(buf);
 
         let title_text = wdgts.title_editbox.buffer().unwrap().text();
-        println!("\n Waypoint 4. The title edit box should now contain: \n {:?} \n", title_text);
     }
 
     pub fn bnk_save() {

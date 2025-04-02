@@ -61,7 +61,6 @@ fn main() {
     primwin.show();
 
     let mut initpopup = onopen_popup(&primwin);                                        // Ensures that a bank is loaded.
-    //initpopup.make_modal(true);
     initpopup.set_color(Color::Red);
     initpopup.end();
     initpopup.show();
@@ -86,13 +85,16 @@ pub fn onopen_popup(primwin: &Window) -> Window {
     // Button -- Create a new question bank.
     let bttn_newbank = move || {
         bnk_create();
+        bnk_refresh_widgets();
     };
 
     // Button -- Open an existing question bank.
     let bttn_openbank = move || {
         bnk_read();
+        bnk_refresh_widgets();
     };
 
+    // todo: The function below is way too complex.  Find another solution.
     let pop = fltk_popup_2btn(&primwin, Box::new(bttn_newbank), "Create new bank",
                     Box::new(bttn_openbank), "Open existing bank");
     pop
