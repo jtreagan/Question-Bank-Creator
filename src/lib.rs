@@ -146,56 +146,39 @@ pub mod banks {
     //endregion
 
     pub fn bnk_refresh_widgets() {
-        let mut usebank: Bank;
-        let mut wdgts: Wdgts;
-        {
-            usebank = CURRENT_BANK.lock().unwrap().clone();
-            wdgts = WIDGETS.lock().unwrap().clone();
-        }  // Load the global structs.
 
-        bnk_refresh_title();
-
-        println!("\n Waypoint 1.  Just before refresh wdgts for-loop. \n");
-
-        // For loop through quest display boxes re-adding them to the scroll group.
-        for qstn_box in wdgts.qstn_boxes.iter() {
-
-            println!("\n In wdgts for-loop qstn_box = {:?} \n", qstn_box);
-
-            wdgts.scroll.add(qstn_box);
-        }
-
-        println!("\n Waypoint 2.  Just after refresh wdgts for-loop. \n");
-
-        wdgts.scroll.redraw();
+          // Create/refresh widgets based on data in CURRENT_BANK.
+        make_title_txtedtr();
+        make_scrollgroup();
+        make_question_boxes();
     }
-
 
     pub fn bnk_create() {
         let mut app = app::App::default();
         {
             app = APP_FLTK.lock().unwrap().clone();
-        }
-
-        let usetitle = input_string(&app, "Please enter the bank's title.", 300, 90);
+        } // Access the main app.
 
 
-        // Pass the inputted values into the struct fields.
+        //let usetitle =
+
+        // Input values into the struct fields.
         let mut newbank = Bank::new();
-        newbank.bank_title = usetitle.clone();
+        newbank.bank_title = input_string(&app, "Please enter the bank's title.", 300, 90);
         newbank.associated_textbook = input_string(&app, "If you are using an associated textbook \n please enter its info. \n Press  Enter  if no textbook is being used.",
                                                    800, 200);
         // Pass the new bank into CURRENT_BANK
         {
             *CURRENT_BANK.lock().unwrap() = newbank.clone();
         }
+
         // Save and display the bank.
         bnk_save();
 
-        // Create widgets based on newbank's data.
-        make_title_txtedtr();
-        make_scrollgroup();
-        make_question_boxes();
+        // Create widgets based on the data in CURRENT_BANK.
+        //make_title_txtedtr();
+        //make_scrollgroup();
+        //make_question_boxes();
     }
 
     /*
@@ -404,7 +387,7 @@ pub mod banks {
 }  // End    bank    module
 
 pub mod questions {
-    use crate::banks::{bnk_display, bnk_save, Bank};
+    use crate::banks::{bnk_save, Bank};
     use crate::variable::*;
     use crate::{APP_FLTK, CURRENT_BANK, LAST_DIR_USED, VARIABLE_DIR};
     use fltk::app::set_font_size;
@@ -515,7 +498,7 @@ pub mod questions {
         let mut usebank = CURRENT_BANK.lock().unwrap();
         usebank.question_vec.push(editqst.clone());  // This won't work.  push()  appends to the end of the vector.
         bnk_save();
-        bnk_display();
+        //bnk_display();
     }
 
     pub fn qst_chooseqst() -> Question {

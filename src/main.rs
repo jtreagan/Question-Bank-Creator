@@ -58,8 +58,6 @@ fn main() {
 
     *WIDGETS.lock().unwrap() = wdgts.clone();
 
-    make_title_txtedtr();  // Add a title TextEditor.
-
     wdgts.prim_win.show();
 
     //region Set up and call the on-open popup window.
