@@ -25,7 +25,9 @@ use fltk::group::Scroll;
 use fltk::text::{TextDisplay, TextEditor};
 use fltk::utils::oncelock::Lazy;
 use std::sync::Mutex;
-
+use fltk::enums::Color;
+use fltk::prelude::{GroupExt, WidgetExt};
+use fltk::window::Window;
 // region  Global Constants
 
 pub const DEVELOPMENT_VERSION: &str = "Question Bank Rebuild 4";
@@ -52,6 +54,7 @@ pub static WIDGETS: Lazy<Mutex<Wdgts>> = Lazy::new(|| Mutex::new(Wdgts::new()));
 
 // region Wdgts Struct that holds the primary window's widgets.
 pub struct Wdgts {
+    pub prim_win: Window,
     pub title_editbox: TextEditor,
     pub scroll: Scroll,
     pub qstn_boxes: Vec<TextDisplay>,
@@ -59,7 +62,13 @@ pub struct Wdgts {
 
 impl Wdgts {
     pub fn new() -> Self {
+        let prim_win = Window::default()
+            .with_size(825, 900)
+            .with_pos(1100, 200);
+        prim_win.end();
+
         Self {
+            prim_win,
             title_editbox: TextEditor::default(),
             scroll: Scroll::default(),
             qstn_boxes: Vec::new(),
@@ -70,6 +79,7 @@ impl Wdgts {
 impl Clone for Wdgts {
     fn clone(&self) -> Self {
         Self {
+            prim_win: self.prim_win.clone(),
             title_editbox: self.title_editbox.clone(),
             scroll: self.scroll.clone(),
             qstn_boxes: self.qstn_boxes.clone(),
@@ -92,7 +102,7 @@ pub mod global {
 }  // End   global   module
 
 pub mod banks {
-    use crate::misc::get_text_from_editor;
+    use crate::misc::{get_text_from_editor, make_question_boxes, make_scrollgroup, make_title_txtedtr};
     use crate::{questions::*, Wdgts, APP_FLTK, BANK_DIR, CURRENT_BANK, LAST_DIR_USED, WIDGETS};
     use fltk::app::set_font_size;
     use fltk::enums::{Color, FrameType};
@@ -168,15 +178,11 @@ pub mod banks {
             app = APP_FLTK.lock().unwrap().clone();
         }
 
-        println!("\n Waypoint 1.  Just before calling  input_string(). \n");
-
         let usetitle = input_string(&app, "Please enter the bank's title.", 300, 90);
 
-        println!("\n Waypoint 2.  Just after calling  input_string(). \n");
-
-        let mut newbank = Bank::new();
 
         // Pass the inputted values into the struct fields.
+        let mut newbank = Bank::new();
         newbank.bank_title = usetitle.clone();
         newbank.associated_textbook = input_string(&app, "If you are using an associated textbook \n please enter its info. \n Press  Enter  if no textbook is being used.",
                                                    800, 200);
@@ -186,7 +192,11 @@ pub mod banks {
         }
         // Save and display the bank.
         bnk_save();
-        bnk_refresh_title();
+
+        // Create widgets based on newbank's data.
+        make_title_txtedtr();
+        make_scrollgroup();
+        make_question_boxes();
     }
 
     pub fn bnk_display() -> Window {
@@ -305,9 +315,13 @@ pub mod banks {
         }
         // endregion
 
-        // Pass the new bank into CURRENT_BANK
-        *CURRENT_BANK.lock().unwrap() = usebank.clone();
-        make_question_boxes()
+        {
+            *CURRENT_BANK.lock().unwrap() = usebank.clone();
+        }  // Pass the new bank into CURRENT_BANK
+
+        make_title_txtedtr();
+        make_scrollgroup();
+        make_question_boxes();
     }
 
     pub fn bnk_refresh_title() {
@@ -1419,8 +1433,16 @@ pub mod math_functions {
 } // End   math_functions   module.
 
 pub mod misc {
-    use fltk::prelude::DisplayExt;
-    use fltk::text::TextEditor;
+    use fltk::app::set_font_size;
+    use fltk::{button::Button, enums::Color, group::Scroll};
+    use fltk::prelude::{DisplayExt, GroupExt, WidgetBase, WidgetExt};
+    use fltk::text;
+    use fltk::text::{TextBuffer, TextDisplay, TextEditor};
+    use fltk::window::Window;
+    use lib_myfltk::fltkutils::fltk_popup_2btn;
+    use crate::{Wdgts, CURRENT_BANK, DEVELOPMENT_VERSION, PROGRAM_TITLE, QDISP_HEIGHT, VERSION, WIDGETS};
+    use crate::banks::{bnk_create, bnk_read, bnk_refresh_widgets, Bank};
+    use crate::questions::qst_edit;
 
     pub fn get_text_from_editor(editor: &TextEditor) -> String {
         if let Some(buffer) = editor.buffer() {
@@ -1433,6 +1455,160 @@ pub mod misc {
         } else {
             String::new() // If no buffer is set, return an empty string
         }
+    }
+
+    pub fn primwin_setup(primwin: &mut Window) {  // Set up the primary window.
+        //let mut primwin = Window::default().with_size(825, 900).with_pos(1000, 100);
+        primwin.set_color(Color::Blue);
+        let fulltitle = format!("{} -- {} -- Version {}", DEVELOPMENT_VERSION, PROGRAM_TITLE, VERSION);
+        primwin.set_label(fulltitle.as_str());
+        primwin.make_resizable(true);
+    }
+
+    pub fn onopen_popup() -> Window {
+        // On program opening, pop up a window with choice for new bank or open existing bank.
+
+        // region Set up button callback closures.
+                // Button -- Create a new question bank.
+        let bttn_newbank = move || {
+            bnk_create();
+            bnk_refresh_widgets();
+        };
+
+                // Button -- Open an existing question bank.
+        let bttn_openbank = move || {
+            bnk_read();
+            bnk_refresh_widgets();
+        };
+        // endregion
+
+        let mut wdgts = Wdgts::new();
+        {
+            wdgts = WIDGETS.lock().unwrap().clone();
+        }  // Access the WIDGETS struct
+
+        // todo: The function below is way too complex.  Find another solution.
+        let mut pop = fltk_popup_2btn(&wdgts.prim_win, Box::new(bttn_newbank), "Create new bank",
+                                  Box::new(bttn_openbank), "Open existing bank");
+        pop.set_color(Color::Red);
+
+        pop
+    }
+
+    pub fn make_title_txtedtr() {
+
+        // todo: Add a line, smaller font, below the main title for
+        //      a subtitle or maybe the title of the textbook being used.
+
+        let usebank: Bank;
+        let mut wdgts: Wdgts;
+        {
+            usebank = CURRENT_BANK.lock().unwrap().clone();
+            wdgts = WIDGETS.lock().unwrap().clone();
+        }  // Load the global structs.
+
+        let mut buf = TextBuffer::default();
+        buf.set_text(usebank.bank_title.as_str());  // Uses the title from the current bank.
+
+        let mut ted = TextEditor::new(0, 40, wdgts.prim_win.width(), 60, "");
+        ted.set_text_size(32);
+        ted.set_text_color(fltk::enums::Color::White);
+        ted.set_color(fltk::enums::Color::DarkMagenta);
+        ted.set_buffer(buf.clone());   // Clone is used here to avoid an ownership error.
+
+        wdgts.title_editbox = ted.clone();  // Store the widgit in the widget struct.
+        wdgts.prim_win.add(&ted.clone());
+
+        *WIDGETS.lock().unwrap() = wdgts.clone();    // Update the WIDGET global variable.
+
+        // todo: It would be nice to center and bold the text, but that is really
+        //      difficult to do, so leave for later.
+    }
+
+    pub fn make_scrollgroup() {
+
+        let mut wdgts: Wdgts;
+        {
+            wdgts = WIDGETS.lock().unwrap().clone();
+        }  // Access the struct containing the primary window's widgets.
+
+        // Create scroll group
+        let mut scroll = Scroll::new(0, wdgts.title_editbox.height() + 1,
+                                     wdgts.prim_win.width(),
+                                     wdgts.prim_win.height() - wdgts.title_editbox.height(),
+                                     "");
+        scroll.set_scrollbar_size(15);
+
+        // Add scroll to the Wdgts struct & window.
+        wdgts.scroll = scroll.clone();
+        wdgts.prim_win.add(&scroll.clone());
+
+        *WIDGETS.lock().unwrap() = wdgts.clone();    // Update the WIDGET global variable.
+    }
+
+    pub fn make_question_boxes() {
+        let usebank: Bank;
+        let mut wdgts: Wdgts;
+        {
+            usebank = CURRENT_BANK.lock().unwrap().clone();
+            wdgts = WIDGETS.lock().unwrap().clone();
+        }  // Load the global structs.
+
+        //Create and add TextDisplay boxes and buttons to the widget struct.
+
+        let mut box_y = wdgts.title_editbox.height() + 1;  // Allow room for the Title Box
+        let mut qnum = 1;  // Question number -- starts at 1.
+
+        // The loop below sets up display boxes for each question in the bank.
+        for item in usebank.question_vec.iter() {
+
+            // region Create the question label and set up text buffer.
+            let qlabel = format!("Question {} :  ", qnum);
+            let mut txtbuff = TextBuffer::default();
+            txtbuff.set_text(item.qtext.as_str());
+            // endregion
+
+            // region Setup the display box and it's attributes.
+            let mut qdisp = TextDisplay::new(0, box_y, wdgts.prim_win.width(),
+                                                        QDISP_HEIGHT, qlabel.as_str());
+            qdisp.set_buffer(txtbuff);
+            qdisp.wrap_mode(text::WrapMode::AtBounds, 0);
+            qdisp.set_color(fltk::enums::Color::White);
+            qdisp.set_text_size(22);
+            qdisp.set_text_color(fltk::enums::Color::Black);
+            // endregion
+
+            // region Setup the edit button & callback. Buttons not added to widget struct.
+            let editbtn_x = qdisp.x() + qdisp.w() - 50;  // Button is sized 50 X 30
+            let editbtn_y = qdisp.y() + qdisp.h() - 30;
+            let mut editbtn = Button::new(editbtn_x, editbtn_y, 50, 30, "Edit");
+
+            editbtn.set_callback(move |_| {
+                println!("\n Edit button for Question #{} has been pressed. \n", qnum);
+                qst_edit(qnum - 1);
+            });
+            // endregion
+
+            // TODO: Set up show/edit prereqs and objectives button
+            // TODO: Create a subframe to display/edit the answer.
+
+            box_y += QDISP_HEIGHT;    // Increment the question display widget position.
+            qnum += 1;       // Increment the question display number.
+
+            wdgts.qstn_boxes.push(qdisp.clone());
+            wdgts.scroll.add(&qdisp);
+        }
+        *WIDGETS.lock().unwrap() = wdgts.clone();    // Update the WIDGET global variable.
+    }
+
+    pub fn deleteme_window_attrs(win: &Window) {
+        let xxx = win.x();
+        let yyy = win.y();
+        let www = win.w();
+        let hhh = win.h();
+
+        println!("\n The position of the primary window is :  ({}, {}) \n", xxx, yyy);
+        println!("The size of the primary window is :  ({}, {}) \n", www, hhh);
     }
 
 }
