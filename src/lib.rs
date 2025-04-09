@@ -28,8 +28,8 @@ use std::sync::Mutex;
 use fltk::enums::Color;
 use fltk::prelude::{GroupExt, WidgetExt};
 use fltk::window::Window;
-// region  Global Constants
 
+// region  Global Constants
 pub const DEVELOPMENT_VERSION: &str = "Question Bank Rebuild 4";
 pub const PROGRAM_TITLE: &str = "Question Bank Creator";
 pub const VERSION: &str = "0.30.5";     // Note:  Versioning is decimal in nature.pub const DATA_GENERAL_FOLDER: &str = "/home/jtreagan/programming/rust/mine/qbnk_data";
@@ -40,7 +40,6 @@ pub const QUESTION_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/q
 pub const BANK_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/banks";
 
 pub const QDISP_HEIGHT: i32 = 150;
-
 // endregion
 
 //region Global Variables
@@ -199,6 +198,7 @@ pub mod banks {
         make_question_boxes();
     }
 
+    /*
     pub fn bnk_display() -> Window {
 
         //region Access the bank that is currently being used.
@@ -281,14 +281,17 @@ pub mod banks {
         // TODO: Add a save dialog for when the display is closed.
     }
 
+     */  //  No longer needed  bnk_display()
+
     pub fn bnk_read() {
 
-        // Setup proper directory and read the file.
+        // region Set up directories.
+
+                    // Setup proper directory and read the file.
         println!("\n Please choose the Bank file to be read.");
 
         let usepath: String;
 
-        // region Set up directories.
         { // Global variable scope is restricted to avoid Mutex lock.
             if LAST_DIR_USED.lock().unwrap().clone() == "" {
                 *LAST_DIR_USED.lock().unwrap() = BANK_DIR.to_string().clone();
@@ -318,10 +321,6 @@ pub mod banks {
         {
             *CURRENT_BANK.lock().unwrap() = usebank.clone();
         }  // Pass the new bank into CURRENT_BANK
-
-        make_title_txtedtr();
-        make_scrollgroup();
-        make_question_boxes();
     }
 
     pub fn bnk_refresh_title() {
@@ -1465,6 +1464,7 @@ pub mod misc {
         primwin.make_resizable(true);
     }
 
+    /*
     pub fn onopen_popup() -> Window {
         // On program opening, pop up a window with choice for new bank or open existing bank.
 
@@ -1494,6 +1494,8 @@ pub mod misc {
 
         pop
     }
+
+     */  // No longer needed -- onopen_popup()
 
     pub fn make_title_txtedtr() {
 
@@ -1552,7 +1554,7 @@ pub mod misc {
         {
             usebank = CURRENT_BANK.lock().unwrap().clone();
             wdgts = WIDGETS.lock().unwrap().clone();
-        }  // Load the global structs.
+        }  // Access the global structs.
 
         //Create and add TextDisplay boxes and buttons to the widget struct.
 
@@ -1601,7 +1603,9 @@ pub mod misc {
         *WIDGETS.lock().unwrap() = wdgts.clone();    // Update the WIDGET global variable.
     }
 
-    pub fn deleteme_window_attrs(win: &Window) {
+    pub fn get_window_attrs(win: &Window) {
+        // For debugging purposes.  Move to  lib.utils???
+
         let xxx = win.x();
         let yyy = win.y();
         let www = win.w();

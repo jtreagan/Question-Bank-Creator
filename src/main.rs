@@ -58,12 +58,13 @@ fn main() {
 
     *WIDGETS.lock().unwrap() = wdgts.clone();
 
-    //make_title_txtedtr(&mut primwin);  // Add a title TextEditor.
-    //make_scrollgroup(&mut primwin);    // Add a scrollbar.
+    make_title_txtedtr();  // Add a title TextEditor.
 
     wdgts.prim_win.show();
 
     //region Set up and call the on-open popup window.
+        // todo:  Why can't I move the popup stuff below to a separate function?
+        //          It doesn't work.  I tried it.
 
                 // region Set up button callback closures.
     // Button -- Create a new question bank.
