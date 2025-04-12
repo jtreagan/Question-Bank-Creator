@@ -22,12 +22,11 @@
 use crate::banks::Bank;
 use fltk::app::App;
 use fltk::group::Scroll;
+use fltk::prelude::{GroupExt, WidgetExt};
 use fltk::text::{TextDisplay, TextEditor};
 use fltk::utils::oncelock::Lazy;
-use std::sync::Mutex;
-use fltk::enums::Color;
-use fltk::prelude::{GroupExt, WidgetExt};
 use fltk::window::Window;
+use std::sync::Mutex;
 
 // region  Global Constants
 pub const DEVELOPMENT_VERSION: &str = "Question Bank Rebuild 4";
@@ -101,14 +100,11 @@ pub mod global {
 }  // End   global   module
 
 pub mod banks {
-    use crate::misc::{get_text_from_editor, make_question_boxes, make_scrollgroup, make_title_txtedtr};
+    use crate::misc::{make_question_boxes, make_scrollgroup, make_title_txtedtr};
     use crate::{questions::*, Wdgts, APP_FLTK, BANK_DIR, CURRENT_BANK, LAST_DIR_USED, WIDGETS};
-    use fltk::app::set_font_size;
-    use fltk::enums::{Color, FrameType};
-    use fltk::prelude::{DisplayExt, GroupExt, WidgetBase, WidgetExt};
-    use fltk::text::{TextBuffer, TextDisplay};
-    use fltk::window::Window;
-    use fltk::{app, button::Button, frame::Frame, group::Scroll, text};
+    use fltk::prelude::{DisplayExt, WidgetBase, WidgetExt};
+    use fltk::text::TextBuffer;
+    use fltk::app;
     use lib_file::file_fltk::*;
     use lib_file::file_mngmnt::file_read_to_string;
     use lib_input_fltk::input::input_string;
@@ -387,6 +383,7 @@ pub mod banks {
 }  // End    bank    module
 
 pub mod questions {
+    //use std::string::String;
     use crate::banks::{bnk_save, Bank};
     use crate::variable::*;
     use crate::{APP_FLTK, CURRENT_BANK, LAST_DIR_USED, VARIABLE_DIR};
@@ -401,6 +398,8 @@ pub mod questions {
     use lib_myfltk::fltkutils::*;
     use lib_utils::utilities::*;
     use serde::{Deserialize, Serialize};
+    //use serde_json::Value::String;
+
 
     //region Struct Section
 
@@ -443,9 +442,10 @@ pub mod questions {
         qst_fill_varvec_parsetext(&mut newquest);
 
                 // Answer will eventually need to be calculated.
+
         let mut app = app::App::default();
         {
-            let app = APP_FLTK.lock().unwrap();
+            app = APP_FLTK.lock().unwrap().clone();
         }
 
         newquest.answer = input_string(&app, "Please input the question's answer:  ", 790, 300);
@@ -474,8 +474,14 @@ pub mod questions {
     }
 
     pub fn qst_edit(qst_idx: usize) {
-        //let mut lastdir = LAST_DIR_USED.lock().unwrap().clone();
-        let usebank = CURRENT_BANK.lock().unwrap();
+
+        let mut app = app::App::default();
+        let mut usebank = Bank::new();
+        {
+            app = APP_FLTK.lock().unwrap().clone();
+            usebank = CURRENT_BANK.lock().unwrap().clone();
+        }  // Access global variables.
+
         let mut editqst = usebank.question_vec.get(qst_idx).unwrap().clone();
 
         let nowtext = qst_editor(editqst.qtext.as_str(), "Question Editor");
@@ -485,10 +491,6 @@ pub mod questions {
         qst_fill_varvec_parsetext(&mut editqst);  // Need to clear the vector first.
 
         // Answer will eventually need to be calculated.
-        let mut app = app::App::default();
-        {
-            let app = APP_FLTK.lock().unwrap();
-        }
 
         editqst.answer = input_string(&app,"Please input the question's answer:  ", 790, 300);
         editqst.objectives = input_strvec(&app,"Please enter the question objectives:  ", 790, 300);
@@ -510,7 +512,11 @@ pub mod questions {
         // Note:  This function may not be necessary.
 
         let mut usevec: Vec<String> = Vec::new();
-        let usebank = CURRENT_BANK.lock().unwrap();
+
+        let mut usebank = Bank::new();
+        {
+            usebank = CURRENT_BANK.lock().unwrap().clone();
+        }
 
         for item in usebank.question_vec.iter() {
             usevec.push(item.qtext.clone());
@@ -529,8 +535,6 @@ pub mod questions {
     }  // Is this necessary now?
 
     pub fn qst_fill_varvec_parsetext(quest: &mut Question) {
-        //let lastdir = LAST_DIR_USED.lock().unwrap();
-
         // Creates a vector of the variable names that have been flagged in the text.
         let mut usevec = util_flaggedtxt_2vec(&quest.qtext, '§');
         usevec.sort();
@@ -625,7 +629,10 @@ pub mod questions {
     }
 
     pub fn qst_make_var_replace_text() -> String {
-        let lastdir = LAST_DIR_USED.lock().unwrap();
+        let mut lastdir = String::new();
+        {
+            let lastdir = LAST_DIR_USED.lock().unwrap().clone();
+        }
 
         println!("\n Please choose the variable you want to insert. \n");
         let path = file_pathonly(&lastdir);
@@ -668,7 +675,10 @@ pub mod questions {
     pub fn qst_read() -> Question {
         // TODO: Should return an option or result rather than  `unwrap()` or `panic!()`.
 
-        let lastdir = LAST_DIR_USED.lock().unwrap();
+        let mut lastdir = String::new();
+        {
+            let lastdir = LAST_DIR_USED.lock().unwrap().clone();
+        }
 
         println!("\n Please choose the Question file to be read.");
         let usepath = file_fullpath(&lastdir);
@@ -713,6 +723,7 @@ pub mod questions {
 pub mod variable {
     use crate::global::TypeWrapper;
     use crate::global::TypeWrapper::*;
+    use crate::lists::list_read;
     use crate::math_functions::*;
     use crate::LAST_DIR_USED;
     use lib_file::file_fltk::*;
@@ -720,7 +731,6 @@ pub mod variable {
     use lib_jt::{input_utilities::*, vec::*};
     use serde::{Deserialize, Serialize};
     use std::{fs::File, io::Write};
-    use crate::lists::list_read;
 
     //region Struct Section
 
@@ -989,14 +999,14 @@ pub mod variable {
 } // End   variable   module
 
 pub mod lists {
-    use std::fs::File;
-    use std::io::Write;
+    use crate::{APP_FLTK, LAST_DIR_USED};
     use fltk::app::App;
     use lib_file::file_fltk::{file_browse_save_fltr, file_fullpath_fltr};
     use lib_file::file_mngmnt::file_read_to_string;
     use lib_input_fltk::input::{input_charvec, input_f64vec, input_i64vec, input_strvec};
     use serde::{Deserialize, Serialize};
-    use crate::{APP_FLTK, LAST_DIR_USED};
+    use std::fs::File;
+    use std::io::Write;
 
     // region Struct section
     #[derive(Debug, Serialize, Deserialize)]
@@ -1137,13 +1147,13 @@ pub mod lists {
 }  // End  lists module
 
 pub mod menus {
+    use crate::lists::list_create;
     use crate::{banks::*, questions::*, variable::*};
     use fltk::app::quit;
     use fltk::enums::{Color, Shortcut};
-    use fltk::prelude::{MenuExt, WidgetBase, WidgetExt};
     use fltk::menu;
+    use fltk::prelude::{MenuExt, WidgetBase, WidgetExt};
     use fltk::window::Window;
-    use crate::lists::list_create;
 
     pub fn qbnk_menubar(primwin: &mut Window) -> menu::MenuBar {
 
@@ -1415,16 +1425,14 @@ pub mod math_functions {
 } // End   math_functions   module.
 
 pub mod misc {
-    use fltk::app::set_font_size;
-    use fltk::{button::Button, enums::Color, group::Scroll};
+    use crate::banks::Bank;
+    use crate::questions::qst_edit;
+    use crate::{Wdgts, CURRENT_BANK, DEVELOPMENT_VERSION, PROGRAM_TITLE, QDISP_HEIGHT, VERSION, WIDGETS};
     use fltk::prelude::{DisplayExt, GroupExt, WidgetBase, WidgetExt};
     use fltk::text;
     use fltk::text::{TextBuffer, TextDisplay, TextEditor};
     use fltk::window::Window;
-    use lib_myfltk::fltkutils::fltk_popup_2btn;
-    use crate::{Wdgts, CURRENT_BANK, DEVELOPMENT_VERSION, PROGRAM_TITLE, QDISP_HEIGHT, VERSION, WIDGETS};
-    use crate::banks::{bnk_create, bnk_read, bnk_refresh_widgets, Bank};
-    use crate::questions::qst_edit;
+    use fltk::{button::Button, enums::Color, group::Scroll};
 
     pub fn get_text_from_editor(editor: &TextEditor) -> String {
         if let Some(buffer) = editor.buffer() {
@@ -1513,7 +1521,7 @@ pub mod misc {
     pub fn make_scrollgroup() {
 
         let mut wdgts: Wdgts;
-        let mut usebank: Bank;
+        let usebank: Bank;
         {
             wdgts = WIDGETS.lock().unwrap().clone();
             usebank = CURRENT_BANK.lock().unwrap().clone();

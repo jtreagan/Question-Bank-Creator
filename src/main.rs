@@ -36,15 +36,12 @@ const _COPYRIGHT: &str = "Copyright (c) 2021 <John T. Reagan>";
 
 // endregion
 
-use fltk::{app::*, prelude::*, prelude::WidgetExt, window::Window, text, window};
-use fltk::button::Button;
+use fltk::{app::*, prelude::*, prelude::WidgetExt};
 use fltk::enums::{Color};
-use fltk::group::Scroll;
-use fltk::text::{TextBuffer, TextDisplay, TextEditor};
 use lib_myfltk::fltkutils::fltk_popup_2btn;
 use qbnk_rbld5::{menus::*, misc::*};
-use qbnk_rbld5::{APP_FLTK, CURRENT_BANK, DEVELOPMENT_VERSION, PROGRAM_TITLE, QDISP_HEIGHT, VERSION, WIDGETS};
-use qbnk_rbld5::{banks::*, Wdgts, questions::qst_edit};
+use qbnk_rbld5::{APP_FLTK, WIDGETS};
+use qbnk_rbld5::{banks::*, Wdgts};
 
 fn main() {
     let app = App::default();
