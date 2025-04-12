@@ -1513,14 +1513,16 @@ pub mod misc {
     pub fn make_scrollgroup() {
 
         let mut wdgts: Wdgts;
+        let mut usebank: Bank;
         {
             wdgts = WIDGETS.lock().unwrap().clone();
-        }  // Access the struct containing the primary window's widgets.
+            usebank = CURRENT_BANK.lock().unwrap().clone();
+        }  // Access the global structs.
 
         // Create scroll group
-        let mut scroll = Scroll::new(0, wdgts.title_editbox.height() + 1,
+        let mut scroll = Scroll::new(0, wdgts.title_editbox.height() + 40,
                                      wdgts.prim_win.width(),
-                                     wdgts.prim_win.height() - wdgts.title_editbox.height(),
+                                     usebank.question_vec.len() as i32 * QDISP_HEIGHT,
                                      "");
         scroll.set_scrollbar_size(15);
 
@@ -1543,6 +1545,9 @@ pub mod misc {
 
         let mut box_y = wdgts.title_editbox.height() + 1;  // Allow room for the Title Box
         let mut qnum = 1;  // Question number -- starts at 1.
+
+        //todo: The question numbers are displaying weird.  First question's label doesn't
+        //          even show.  Work on that.
 
         // The loop below sets up display boxes for each question in the bank.
         for item in usebank.question_vec.iter() {
