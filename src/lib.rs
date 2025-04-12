@@ -1544,10 +1544,11 @@ pub mod misc {
         //Create and add TextDisplay boxes and buttons to the widget struct.
 
         let mut box_y = wdgts.title_editbox.height() + 1;  // Allow room for the Title Box
+        box_y += 60;  // Allow room for the label of the first question box.
         let mut qnum = 1;  // Question number -- starts at 1.
 
         //todo: The question numbers are displaying weird.  First question's label doesn't
-        //          even show.  Work on that.
+        //          even show.  Work on that.  Next iteration.
 
         // The loop below sets up display boxes for each question in the bank.
         for item in usebank.question_vec.iter() {
