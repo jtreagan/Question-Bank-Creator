@@ -102,7 +102,7 @@ pub mod global {
 pub mod banks {
     use crate::misc::{make_question_boxes, make_scrollgroup, make_title_txtedtr};
     use crate::{questions::*, Wdgts, APP_FLTK, BANK_DIR, CURRENT_BANK, LAST_DIR_USED, WIDGETS};
-    use fltk::prelude::{DisplayExt, WidgetBase, WidgetExt};
+    use fltk::prelude::{DisplayExt, GroupExt, WidgetBase, WidgetExt};
     use fltk::text::TextBuffer;
     use fltk::app;
     use lib_file::file_fltk::*;
@@ -142,6 +142,13 @@ pub mod banks {
     //endregion
 
     pub fn bnk_refresh_widgets() {
+        let mut wdgts: Wdgts;
+        {
+            wdgts = WIDGETS.lock().unwrap().clone();
+        }
+
+        wdgts.scroll.clear();
+        wdgts.scroll.redraw();
 
           // Create/refresh widgets based on data in CURRENT_BANK.
         make_title_txtedtr();
@@ -320,26 +327,34 @@ pub mod banks {
     pub fn bnk_save() {
         if LAST_DIR_USED.lock().unwrap().clone() == "" {
             *LAST_DIR_USED.lock().unwrap() = BANK_DIR.to_string().clone();
+        }  // If no bank loaded, use default.
+
+        let mut lastdir: String;
+        {
+            lastdir = LAST_DIR_USED.lock().unwrap().clone();
         }
 
-        let lastdir = LAST_DIR_USED.lock().unwrap().clone();
-
         // TODO: Find way to insert bank title into the save-file dialog.
-        // TODO: Reset value of   lastdir.
         // TODO: Find way to append correct extension automatically.
 
-        println!("Please choose a directory and file name for saving.");
+        println!("Please choose a directory and file name for saving. \n");
         let usepath = file_browse_save_fltr(&lastdir, "*.bnk");
-        *LAST_DIR_USED.lock().unwrap() = usepath.clone();  // Set the last used directory.  Need to truncate the file name.
+
+        {
+            *LAST_DIR_USED.lock().unwrap() = usepath.clone();
+        }  // Set the last used directory.
 
         bnk_save_as_json(&usepath);
     }
 
     pub fn bnk_save_as_json(usepath: &String) {
 
-        let bnk1 = CURRENT_BANK.lock().unwrap().clone();
+        let mut usebank = Bank::new();
+        {
+            usebank = CURRENT_BANK.lock().unwrap().clone();
+        }
 
-        let bnk_as_json = serde_json::to_string(&bnk1).unwrap();  // Convert bank to json string.
+        let bnk_as_json = serde_json::to_string(&usebank).unwrap();  // Convert bank to json string.
 
         let mut file = File::create(usepath).expect("Could not create file!");
 
@@ -348,8 +363,11 @@ pub mod banks {
     }
 
     pub fn bnk_recalc() {
+        let mut usebank = Bank::new();
+        {
+            usebank = CURRENT_BANK.lock().unwrap().clone();
+        }
 
-        let usebank = CURRENT_BANK.lock().unwrap().clone();
         println!("\n Recalculate variables in a bank.  Not yet implemented. \n");
         println!("\n The current bank is: \n {:?} \n", usebank);
 
@@ -1557,6 +1575,9 @@ pub mod misc {
 
         //todo: The question numbers are displaying weird.  First question's label doesn't
         //          even show.  Work on that.  Next iteration.
+        //          Try using a pack with a frame/pack pattern where the frame contains
+        //          the question number label.  Alternative is to add a frame to the textbox
+        //          that contains the question number label.
 
         // The loop below sets up display boxes for each question in the bank.
         for item in usebank.question_vec.iter() {
