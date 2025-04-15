@@ -39,6 +39,7 @@ pub const QUESTION_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/q
 pub const BANK_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/banks";
 
 pub const QDISP_HEIGHT: i32 = 150;
+pub const SCROLLBAR_WIDTH: i32 = 15;
 // endregion
 
 //region Global Variables
@@ -1445,7 +1446,7 @@ pub mod math_functions {
 pub mod misc {
     use crate::banks::Bank;
     use crate::questions::qst_edit;
-    use crate::{Wdgts, CURRENT_BANK, DEVELOPMENT_VERSION, PROGRAM_TITLE, QDISP_HEIGHT, VERSION, WIDGETS};
+    use crate::{Wdgts, CURRENT_BANK, DEVELOPMENT_VERSION, PROGRAM_TITLE, QDISP_HEIGHT, SCROLLBAR_WIDTH, VERSION, WIDGETS};
     use fltk::prelude::{DisplayExt, GroupExt, WidgetBase, WidgetExt};
     use fltk::text;
     use fltk::text::{TextBuffer, TextDisplay, TextEditor};
@@ -1550,7 +1551,7 @@ pub mod misc {
                                      wdgts.prim_win.width(),
                                      usebank.question_vec.len() as i32 * QDISP_HEIGHT,
                                      "");
-        scroll.set_scrollbar_size(15);
+        scroll.set_scrollbar_size(SCROLLBAR_WIDTH);
 
         // Add scroll to the Wdgts struct & window.
         wdgts.scroll = scroll.clone();
@@ -1560,6 +1561,14 @@ pub mod misc {
     }
 
     pub fn make_question_boxes() {
+        // region TODO's
+        //todo: The question numbers are displaying weird.  First question's label doesn't
+        //          even show.  Work on that.  Next iteration.
+        // TODO: Set up show/edit prereqs and objectives button
+        // TODO: Create a subframe to display/edit the answer.
+
+        // endregion
+
         let usebank: Bank;
         let mut wdgts: Wdgts;
         {
@@ -1567,19 +1576,13 @@ pub mod misc {
             wdgts = WIDGETS.lock().unwrap().clone();
         }  // Access the global structs.
 
-        //Create and add TextDisplay boxes and buttons to the widget struct.
+        // region Calculate size and position values.
+        let mut box_y = wdgts.title_editbox.height() + 1;   // Allow room for the Title Box
+        box_y += 60;            // Allow room for the label of the first question box.
+        let mut qnum = 1;       // Question number -- starts at 1.
+        // endregion
 
-        let mut box_y = wdgts.title_editbox.height() + 1;  // Allow room for the Title Box
-        box_y += 60;  // Allow room for the label of the first question box.
-        let mut qnum = 1;  // Question number -- starts at 1.
-
-        //todo: The question numbers are displaying weird.  First question's label doesn't
-        //          even show.  Work on that.  Next iteration.
-        //          Try using a pack with a frame/pack pattern where the frame contains
-        //          the question number label.  Alternative is to add a frame to the textbox
-        //          that contains the question number label.
-
-        // The loop below sets up display boxes for each question in the bank.
+        // region Set up display boxes for each question in the bank.
         for item in usebank.question_vec.iter() {
 
             // region Create the question label and set up text buffer.
@@ -1589,34 +1592,40 @@ pub mod misc {
             // endregion
 
             // region Setup the display box and it's attributes.
-            let mut qdisp = TextDisplay::new(0, box_y, wdgts.prim_win.width(),
-                                                        QDISP_HEIGHT, qlabel.as_str());
-            qdisp.set_buffer(txtbuff);
-            qdisp.wrap_mode(text::WrapMode::AtBounds, 0);
-            qdisp.set_color(fltk::enums::Color::White);
-            qdisp.set_text_size(22);
-            qdisp.set_text_color(fltk::enums::Color::Black);
+            let mut quest_disp = TextDisplay::new(0,
+                                                  box_y,
+                                                  wdgts.scroll.w() - SCROLLBAR_WIDTH,
+                                                  QDISP_HEIGHT,
+                                                  qlabel.as_str());
+            quest_disp.set_buffer(txtbuff);
+            quest_disp.wrap_mode(text::WrapMode::AtBounds, 0);
+            quest_disp.set_color(fltk::enums::Color::White);
+            quest_disp.set_text_size(22);
+            quest_disp.set_text_color(fltk::enums::Color::Black);
             // endregion
 
             // region Setup the edit button & callback. Buttons not added to widget struct.
-            let editbtn_x = qdisp.x() + qdisp.w() - 50;  // Button is sized 50 X 30
-            let editbtn_y = qdisp.y() + qdisp.h() - 30;
+            let editbtn_x = quest_disp.x() + quest_disp.w() - 65;  // Button is sized 50 X 30
+            let editbtn_y = quest_disp.y() + quest_disp.h() - 35;
             let mut editbtn = Button::new(editbtn_x, editbtn_y, 50, 30, "Edit");
 
             editbtn.set_callback(move |_| {
                 println!("\n Edit button for Question #{} has been pressed. \n", qnum);
                 qst_edit(qnum - 1);
             });
+
+
             // endregion
 
-            // TODO: Set up show/edit prereqs and objectives button
-            // TODO: Create a subframe to display/edit the answer.
-
+            // region Increment values and push/add items to WIDGETS struct
             box_y += QDISP_HEIGHT;    // Increment the question display widget position.
             qnum += 1;       // Increment the question display number.
 
-            wdgts.qstn_boxes.push(qdisp.clone());
-            wdgts.scroll.add(&qdisp);
+            wdgts.qstn_boxes.push(quest_disp.clone());
+            wdgts.scroll.add(&quest_disp);
+            wdgts.scroll.add(&editbtn);
+
+            // endregion
         }
         *WIDGETS.lock().unwrap() = wdgts.clone();    // Update the WIDGET global variable.
     }
