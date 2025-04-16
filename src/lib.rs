@@ -3,12 +3,10 @@
         // TODO: Font Libre Baskerville, 14 pt.  -- next iteration.
         // TODO: All this needs to be user modifiable. -- next iteration.
         // TODO: Goal is for  WYSIWIG.  --  in the far, far future.
-        // TODO: What do you do if you are editing/creating a bank and then decide
-        //          to create another by clicking the  New  button in the menu?
-        // TODO: Make the bank title bar editable.
+
+        // TODO: Make the bank title bar RTF.  Then format it pretty.
         // TODO: Add second line to the title containing the associated textbook text.
         // TODO: Tweak the bank display colors & etc.
-        // TODO: Make the starter text for question entry disappearing.
         // TODO: Question display should show calculated values for the variables
         //          rather than the variable ID.  Maybe highlight the values so
         //          that the variable can be easily located.
@@ -31,8 +29,9 @@ use std::sync::Mutex;
 // region  Global Constants
 pub const DEVELOPMENT_VERSION: &str = "Question Bank Rebuild 4";
 pub const PROGRAM_TITLE: &str = "Question Bank Creator";
-pub const VERSION: &str = "0.30.5";     // Note:  Versioning is decimal in nature.pub const DATA_GENERAL_FOLDER: &str = "/home/jtreagan/programming/rust/mine/qbnk_data";
+pub const VERSION: &str = "0.29.6";     // Note:  Versioning is decimal in nature.
 
+pub const DATA_GENERAL_FOLDER: &str = "/home/jtreagan/programming/rust/mine/qbnk_data";
 pub const LIST_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/lists";
 pub const VARIABLE_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/variables";
 pub const QUESTION_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/questions";
@@ -43,12 +42,10 @@ pub const SCROLLBAR_WIDTH: i32 = 15;
 // endregion
 
 //region Global Variables
-
 pub static CURRENT_BANK: Lazy<Mutex<Bank>> = Lazy::new(|| Mutex::new(Bank::new()));
 pub static LAST_DIR_USED: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new(String::new()));
 pub static APP_FLTK: Lazy<Mutex<App>> = Lazy::new(|| Mutex::new(App::default()));
 pub static WIDGETS: Lazy<Mutex<Wdgts>> = Lazy::new(|| Mutex::new(Wdgts::new()));
-
 //endregion
 
 // region Wdgts Struct that holds the primary window's widgets.
@@ -326,6 +323,11 @@ pub mod banks {
     }
 
     pub fn bnk_save() {
+        // region TODO's
+        // TODO: Find way to insert bank title into the save-file dialog.
+        // TODO: Find way to append correct extension automatically.
+        // endregion
+
         if LAST_DIR_USED.lock().unwrap().clone() == "" {
             *LAST_DIR_USED.lock().unwrap() = BANK_DIR.to_string().clone();
         }  // If no bank loaded, use default.
@@ -334,9 +336,6 @@ pub mod banks {
         {
             lastdir = LAST_DIR_USED.lock().unwrap().clone();
         }
-
-        // TODO: Find way to insert bank title into the save-file dialog.
-        // TODO: Find way to append correct extension automatically.
 
         println!("Please choose a directory and file name for saving. \n");
         let usepath = file_browse_save_fltr(&lastdir, "*.bnk");
@@ -402,10 +401,9 @@ pub mod banks {
 }  // End    bank    module
 
 pub mod questions {
-    //use std::string::String;
-    use crate::banks::{bnk_save, Bank};
+    use crate::banks::{bnk_refresh_widgets, bnk_save, Bank};
     use crate::variable::*;
-    use crate::{APP_FLTK, CURRENT_BANK, LAST_DIR_USED, VARIABLE_DIR};
+    use crate::{APP_FLTK, CURRENT_BANK, LAST_DIR_USED, QUESTION_DIR, VARIABLE_DIR};
     use fltk::app::set_font_size;
     use fltk::enums::{Color, Shortcut};
     use fltk::prelude::{DisplayExt, GroupExt, MenuExt, WidgetBase, WidgetExt, WindowExt};
@@ -417,8 +415,6 @@ pub mod questions {
     use lib_myfltk::fltkutils::*;
     use lib_utils::utilities::*;
     use serde::{Deserialize, Serialize};
-    //use serde_json::Value::String;
-
 
     //region Struct Section
 
@@ -447,8 +443,8 @@ pub mod questions {
     //endregion
 
     pub fn qst_create() {
-    // TODO: Check that a bank has been loaded before allowing a new question.
     // TODO: Make the starter text disappears as soon as user starts typing.
+    // todo: The answer will need to parse inserted variables.
 
         let mut newquest = Question::new();
 
@@ -476,20 +472,14 @@ pub mod questions {
         let mut usebank: Bank;
         {
             usebank = CURRENT_BANK.lock().unwrap().clone();
-        }
-
-        // Push the question to the vector in the bank and save the bank.
-
-        usebank.question_vec.push(newquest);
-
-        {
+        }  // Access the global Bank variable
+        usebank.question_vec.push(newquest);  // Store the new question in the bank
+        {  // Pass the modified bank into the global variable.
             *CURRENT_BANK.lock().unwrap() = usebank.clone();
         }
-
         bnk_save();
 // endregion
 
-        //bnk_display();
     }
 
     pub fn qst_edit(qst_idx: usize) {
@@ -516,10 +506,12 @@ pub mod questions {
         editqst.prereqs = input_strvec(&app,"Please enter the question prerequisites:  ", 790, 300);
 
         // Push the question to the vector in the bank and save the bank.
-        let mut usebank = CURRENT_BANK.lock().unwrap();
-        usebank.question_vec.push(editqst.clone());  // This won't work.  push()  appends to the end of the vector.
+        //let mut usebank = CURRENT_BANK.lock().unwrap();
+
+        // todo: This won't work.  push()  appends to the end of the vector. Fix it.
+        usebank.question_vec.push(editqst.clone());
         bnk_save();
-        //bnk_display();
+        bnk_refresh_widgets();
     }
 
     pub fn qst_chooseqst() -> Question {
@@ -554,17 +546,19 @@ pub mod questions {
     }  // Is this necessary now?
 
     pub fn qst_fill_varvec_parsetext(quest: &mut Question) {
-        // Creates a vector of the variable names that have been flagged in the text.
+        // region Create a vector of the variable names that have been flagged in the text.
         let mut usevec = util_flaggedtxt_2vec(&quest.qtext, '§');
         usevec.sort();
-        usevec.dedup();     // Removes repeats of the flagged variable names.
+        usevec.dedup();     // Remove repeats of the flagged variable names.
+        // endregion
 
-        // Read the variable files from disk and insert them into the variable vector.
+        // region Read the variable files from disk and insert them into the variable vector.
         quest.var_vec.clear();
         for _item in usevec {
             let newvar = vrbl_read();
             quest.var_vec.push(newvar);
         }
+        // endregion
     }
 
     /*
@@ -615,12 +609,15 @@ pub mod questions {
             app::wait();
         }
 
+        println!("\n W5:  End of qst_editor().  The quesion text is:  {} \n", buf.text());
+
         buf.text()
     }
 
     pub fn qst_editor_menubar(edtr: &TextEditor, edtrwin: &mut window::Window, buf: &mut TextBuffer) -> menu::MenuBar {
         let mut menubar = menu::MenuBar::new(0, 0, edtrwin.width(), 40, "");
 
+        // region  "Finished" entry
         let mut edtrwin_clone = edtrwin.clone();
         let quit_idx = menubar.add(
             "Finished\t",
@@ -631,7 +628,9 @@ pub mod questions {
             },
         );
         menubar.at(quit_idx).unwrap().set_label_color(Color::Red);
+        // endregion
 
+        // region "Insert Variable" entry
         let edtr_clone = edtr.clone();
         let mut buf_clone = buf.clone();
         menubar.add(
@@ -639,22 +638,24 @@ pub mod questions {
             Shortcut::None,
             menu::MenuFlag::Normal,
             move |_| {
+
                 let newtext  = qst_make_var_replace_text();
                 fltk_replace_highlighted_text(&edtr_clone, &mut buf_clone, &newtext);
             },
         );
+        // endregion
 
         menubar
     }
 
     pub fn qst_make_var_replace_text() -> String {
-        let mut lastdir = String::new();
-        {
-            let lastdir = LAST_DIR_USED.lock().unwrap().clone();
-        }
+        let mut usedir = VARIABLE_DIR.to_string();
 
-        println!("\n Please choose the variable you want to insert. \n");
-        let path = file_pathonly(&lastdir);
+        println!("\n W4:  usedir = {} \n", usedir);
+
+        println!("Please choose the variable you want to insert. \n");
+
+        let path = file_pathonly(&usedir);
         let flist = file_get_dir_list(&path);
         let varname = fltk_radio_lightbtn_menu(&flist);
         let rpltxt = format!("§{}§", varname);
@@ -662,46 +663,14 @@ pub mod questions {
         rpltxt
     }
 
-    /*
-    pub fn qst_save(qst1: &Question, lastdir: &Rc<RefCell<String>>) {
-        let trail = lastdir.borrow().clone();
-        if trail == "" {
-            *lastdir.borrow_mut() = QUESTION_DIR.to_string();
-        }
-        //let startpath = lastdir.borrow().clone();
-
-        println!("Please choose a directory and file name for saving.");
-        let usepath = file_browse_save_fltr(lastdir, "*.qst");
-        *lastdir.borrow_mut() = usepath;  // Set the last used directory.  Need to truncate the file name.
-        qst_save_as_json(&qst1, lastdir);
-        println!("\n The question has been saved. \n");
-    }
-
-    pub fn qst_save_as_json(qst1: &Question, lastdir: &Rc<RefCell<String>>) {
-        let pathstring = lastdir.borrow().clone();
-        let path = Path::new(&pathstring);
-
-        let qst_as_json = serde_json::to_string(qst1).unwrap();
-
-        let mut file = File::create(path).expect("Could not create file!");
-
-        file.write_all(qst_as_json.as_bytes())
-            .expect("Cannot write to the file!");
-    }
-
-     */  //Old qst_save() functions
-
     pub fn qst_read() -> Question {
         // TODO: Should return an option or result rather than  `unwrap()` or `panic!()`.
 
-        let mut lastdir = String::new();
-        {
-            let lastdir = LAST_DIR_USED.lock().unwrap().clone();
-        }
-
+        // region Choose the desired path.
+        let mut usedir = QUESTION_DIR.to_string();
         println!("\n Please choose the Question file to be read.");
-        let usepath = file_fullpath(&lastdir);
-        //*lastdir.borrow_mut() = usepath.clone();  // Update lastdir.
+        let usepath = file_fullpath(&usedir);
+        // endregion
 
         match file_read_to_string(&usepath) {
             Ok(contents) => {
@@ -736,7 +705,6 @@ pub mod questions {
 
      */  // Issues & questions
 
-
 }  // End   questions   module
 
 pub mod variable {
@@ -744,7 +712,7 @@ pub mod variable {
     use crate::global::TypeWrapper::*;
     use crate::lists::list_read;
     use crate::math_functions::*;
-    use crate::LAST_DIR_USED;
+    use crate::{BANK_DIR, LAST_DIR_USED, VARIABLE_DIR};
     use lib_file::file_fltk::*;
     use lib_file::file_mngmnt::{file_path_to_fname, file_read_to_string};
     use lib_jt::{input_utilities::*, vec::*};
@@ -752,7 +720,6 @@ pub mod variable {
     use std::{fs::File, io::Write};
 
     //region Struct Section
-
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Variable {
         pub var_fname: String,
@@ -806,8 +773,6 @@ pub mod variable {
             }
         }
     } // ~~~~~ End VarPrmtrs impl ~~~~~
-
-
     //endregion
 
     pub fn vrbl_create(typch: &str) {
@@ -867,13 +832,20 @@ pub mod variable {
         vrbl_setvalues(data);
     }
 
-    // TODO: Examine the interaction between the vrbl_save() functions.
     pub fn vrbl_save(var1: &mut Variable) {
-        let lastdir = LAST_DIR_USED.lock().unwrap();
+        let lastdir = String::new();
+        {
+            if LAST_DIR_USED.lock().unwrap().clone() == "" {
+                *LAST_DIR_USED.lock().unwrap() = VARIABLE_DIR.to_string().clone();
+            }  // If no path loaded, use default.
+            let lastdir = LAST_DIR_USED.lock().unwrap().clone();
+        }  // Access the global variable.
+
         let usepath = file_browse_save_fltr(&lastdir, "Variable Files   \t*.vrbl\nText Files   \t*.txt\nList Files    \t*.lst\nAll Files    \t*.*");
 
-        // Set the LAST_DIR_USED to the new path.
-        *LAST_DIR_USED.lock().unwrap() = usepath.clone();
+        {
+            *LAST_DIR_USED.lock().unwrap() = usepath.clone();
+        }  // Set LAST_DIR_USED to the new path.
 
         var1.var_fname = file_path_to_fname(&usepath);
         vrbl_save_as_json(&var1, &usepath);
@@ -891,13 +863,16 @@ pub mod variable {
     }
 
     pub fn vrbl_read() -> Variable {
-        // Should return an option or result rather than  `unwrap()`.
+        // todo: Should return an option or result rather than  `unwrap()`.
 
-        let lastdir = LAST_DIR_USED.lock().unwrap();
-
+        // region Choose the correct directory path
+        let mut usepath = VARIABLE_DIR.to_string();
         println!("\n Please choose the variable file to be used.");
-        let usepath = file_fullpath(&lastdir);
-        *LAST_DIR_USED.lock().unwrap() = usepath.clone();
+        usepath = file_fullpath(&usepath);
+        {
+            *LAST_DIR_USED.lock().unwrap() = usepath.clone();
+        }  // Set LAST_DIR_USED to the new path.
+        // endregion
 
         match file_read_to_string(&usepath) {
             Ok(contents) => {
@@ -1582,7 +1557,7 @@ pub mod misc {
         let mut qnum = 1;       // Question number -- starts at 1.
         // endregion
 
-        // region Set up display boxes for each question in the bank.
+        // Set up a display box for each question in the bank.
         for item in usebank.question_vec.iter() {
 
             // region Create the question label and set up text buffer.
@@ -1613,8 +1588,6 @@ pub mod misc {
                 println!("\n Edit button for Question #{} has been pressed. \n", qnum);
                 qst_edit(qnum - 1);
             });
-
-
             // endregion
 
             // region Increment values and push/add items to WIDGETS struct
@@ -1624,7 +1597,6 @@ pub mod misc {
             wdgts.qstn_boxes.push(quest_disp.clone());
             wdgts.scroll.add(&quest_disp);
             wdgts.scroll.add(&editbtn);
-
             // endregion
         }
         *WIDGETS.lock().unwrap() = wdgts.clone();    // Update the WIDGET global variable.
