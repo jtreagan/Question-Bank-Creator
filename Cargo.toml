@@ -15,16 +15,10 @@ serde_json = "1.0.120"
 serde = { version = "1.0.204", features = ["derive"] }
 fltk = { version = "^1.5.5", features = ["fltk-bundled"] }
 
-# For use in the function   fn activity_menu() stored in jt_lib.rs
-#dialoguer = { version = "0.11.0", features = ["completion"] }
-#console = "0.15.8"
-
 # Reagan created crates
-lib_jt = {path = "/home/jtreagan/programming/rust/mine/lib_jt/"}
-lib_file = {path = "/home/jtreagan/programming/rust/mine/lib_file"}
-lib_input_fltk = {path = "/home/jtreagan/programming/rust/mine/lib_input_fltk/"} 
-lib_utils = {path = "/home/jtreagan/programming/rust/mine/lib_utils/"}
-lib_myfltk = {path = "/home/jtreagan/programming/rust/mine/lib_myfltk/"}
+lib_myfltk = { git = "https://github.com/jtreagan/lib_myfltk.git" }
+lib_utils = { git = "https://github.com/jtreagan/lib_utils.git" }
+lib_file = { git = "https://github.com/jtreagan/lib_file.git" }
 
 
 

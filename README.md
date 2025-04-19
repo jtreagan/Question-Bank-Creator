@@ -29,7 +29,7 @@ Then the names in the problem could be replaced by variables that randomly choos
 
    * Coach Baldwin told Clem that he ran the 11 km race at last Saturday’s track meet in 85.7 minutes.  What was his average speed?
 
-Thus the problem and the skills required to solve it remain essentially the same with the numbers (and answers) being different.  This allows the student to practice until he/she feels confident.  Of course, in a classroom situation, the teacher can also use this feature to print multiple versions of a test or quiz to prevent cheating.
+Thus the problem and the skills required to solve it remain essentially the same with the numbers (and answers) being different.  This allows the student to practice until he/she feels confident in his/her abilities.  Of course, in a classroom situation, the teacher can also use this feature to print multiple versions of a test or quiz to prevent cheating.
 
 ## Dependencies
 
@@ -45,7 +45,6 @@ It also uses several unpublished crates developed by the author.  Here is a copy
    * lib_jt 
    * lib_file 
    * lib_input_fltk 
-   * lib_lists 
    * lib_utils 
    * lib_myfltk
 

@@ -100,12 +100,11 @@ pub mod global {
 pub mod banks {
     use crate::misc::{make_question_boxes, make_scrollgroup, make_title_txtedtr};
     use crate::{questions::*, Wdgts, APP_FLTK, BANK_DIR, CURRENT_BANK, LAST_DIR_USED, WIDGETS};
-    use fltk::prelude::{DisplayExt, GroupExt, WidgetBase, WidgetExt};
+    use fltk::prelude::{DisplayExt, GroupExt, WidgetExt};
     use fltk::text::TextBuffer;
     use fltk::app;
-    use lib_file::file_fltk::*;
-    use lib_file::file_mngmnt::file_read_to_string;
-    use lib_input_fltk::input::input_string;
+    use lib_file::{file_fltk::*, file_mngmnt::file_read_to_string};
+    use lib_myfltk::{fltkutils::*, input_fltk::*};
     use serde::{Deserialize, Serialize};
     use std::{fs::File, io::Write};
 
@@ -319,7 +318,8 @@ pub mod banks {
         buf.set_text(usebank.bank_title.as_str());  // Uses the title from the current bank.
         wdgts.title_editbox.set_buffer(buf);
 
-        let title_text = wdgts.title_editbox.buffer().unwrap().text();
+        //  let title_text =   // There is likely to be a use for  title_text   in the future.
+        wdgts.title_editbox.buffer().unwrap().text();
     }
 
     pub fn bnk_save() {
@@ -332,7 +332,7 @@ pub mod banks {
             *LAST_DIR_USED.lock().unwrap() = BANK_DIR.to_string().clone();
         }  // If no bank loaded, use default.
 
-        let mut lastdir: String;
+        let lastdir: String;
         {
             lastdir = LAST_DIR_USED.lock().unwrap().clone();
         }
@@ -403,7 +403,7 @@ pub mod banks {
 pub mod questions {
     use crate::banks::{bnk_refresh_widgets, bnk_save, Bank};
     use crate::variable::*;
-    use crate::{APP_FLTK, CURRENT_BANK, LAST_DIR_USED, QUESTION_DIR, VARIABLE_DIR};
+    use crate::{APP_FLTK, CURRENT_BANK, QUESTION_DIR, VARIABLE_DIR};
     use fltk::app::set_font_size;
     use fltk::enums::{Color, Shortcut};
     use fltk::prelude::{DisplayExt, GroupExt, MenuExt, WidgetBase, WidgetExt, WindowExt};
@@ -411,8 +411,8 @@ pub mod questions {
     use fltk::{app, menu, text, window};
     use lib_file::file_fltk::*;
     use lib_file::file_mngmnt::{file_get_dir_list, file_read_to_string};
-    use lib_input_fltk::input::{input_string, input_strvec};
     use lib_myfltk::fltkutils::*;
+    use lib_myfltk::input_fltk::{input_string, input_strvec};
     use lib_utils::utilities::*;
     use serde::{Deserialize, Serialize};
 
@@ -617,7 +617,7 @@ pub mod questions {
     pub fn qst_editor_menubar(edtr: &TextEditor, edtrwin: &mut window::Window, buf: &mut TextBuffer) -> menu::MenuBar {
         let mut menubar = menu::MenuBar::new(0, 0, edtrwin.width(), 40, "");
 
-        // region  "Finished" entry
+        // region  "Finished" menu item
         let mut edtrwin_clone = edtrwin.clone();
         let quit_idx = menubar.add(
             "Finished\t",
@@ -630,7 +630,7 @@ pub mod questions {
         menubar.at(quit_idx).unwrap().set_label_color(Color::Red);
         // endregion
 
-        // region "Insert Variable" entry
+        // region "Insert Variable" menu item
         let edtr_clone = edtr.clone();
         let mut buf_clone = buf.clone();
         menubar.add(
@@ -638,7 +638,6 @@ pub mod questions {
             Shortcut::None,
             menu::MenuFlag::Normal,
             move |_| {
-
                 let newtext  = qst_make_var_replace_text();
                 fltk_replace_highlighted_text(&edtr_clone, &mut buf_clone, &newtext);
             },
@@ -649,15 +648,20 @@ pub mod questions {
     }
 
     pub fn qst_make_var_replace_text() -> String {
-        let mut usedir = VARIABLE_DIR.to_string();
-
-        println!("\n W4:  usedir = {} \n", usedir);
+        let usedir = VARIABLE_DIR.to_string();
 
         println!("Please choose the variable you want to insert. \n");
 
+        println!("\n W1: Start of qst_make_var_replace_text() \n");
         let path = file_pathonly(&usedir);
+        println!("\n W2: path = {} \n", path);
+
         let flist = file_get_dir_list(&path);
+        println!("\n W3: flist = {:?} \n", flist);
+
         let varname = fltk_radio_lightbtn_menu(&flist);
+        println!("\n W4: varname = {} \n", varname);
+
         let rpltxt = format!("§{}§", varname);
 
         rpltxt
@@ -667,7 +671,7 @@ pub mod questions {
         // TODO: Should return an option or result rather than  `unwrap()` or `panic!()`.
 
         // region Choose the desired path.
-        let mut usedir = QUESTION_DIR.to_string();
+        let usedir = QUESTION_DIR.to_string();
         println!("\n Please choose the Question file to be read.");
         let usepath = file_fullpath(&usedir);
         // endregion
@@ -712,10 +716,10 @@ pub mod variable {
     use crate::global::TypeWrapper::*;
     use crate::lists::list_read;
     use crate::math_functions::*;
-    use crate::{BANK_DIR, LAST_DIR_USED, VARIABLE_DIR};
+    use crate::{LAST_DIR_USED, VARIABLE_DIR};
     use lib_file::file_fltk::*;
     use lib_file::file_mngmnt::{file_path_to_fname, file_read_to_string};
-    use lib_jt::{input_utilities::*, vec::*};
+    use lib_utils::{input_utilities::*, vec::*};
     use serde::{Deserialize, Serialize};
     use std::{fs::File, io::Write};
 
@@ -997,10 +1001,10 @@ pub mod lists {
     use fltk::app::App;
     use lib_file::file_fltk::{file_browse_save_fltr, file_fullpath_fltr};
     use lib_file::file_mngmnt::file_read_to_string;
-    use lib_input_fltk::input::{input_charvec, input_f64vec, input_i64vec, input_strvec};
     use serde::{Deserialize, Serialize};
     use std::fs::File;
     use std::io::Write;
+    use lib_myfltk::input_fltk::*;
 
     // region Struct section
     #[derive(Debug, Serialize, Deserialize)]
