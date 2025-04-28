@@ -16,9 +16,9 @@ checksum = "5c8214115b7bf84099f1309324e63141d4c5d7cc26862f97a0a857dbefe165bd"
 
 [[package]]
 name = "cc"
-version = "1.2.18"
+version = "1.2.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "525046617d8376e3db1deffb079e91cef90a89fc3ca5c185bbf8c9ecdd15cd5c"
+checksum = "8e3a13707ac958681c13b39b458c073d0d9bc8a22cb1b2f4c8e55eb72c13f362"
 dependencies = [
  "shlex",
 ]
@@ -59,9 +59,9 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-channel"
-version = "0.5.14"
+version = "0.5.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06ba6d68e24814cb8de6bb986db8222d3a027d15872cabc0d18817bc3c0e4471"
+checksum = "82b8f8f868b36967f9606790d1903570de9ceaf870a7bf9fbbd3016d636a2cb2"
 dependencies = [
  "crossbeam-utils",
 ]
@@ -109,9 +109,9 @@ checksum = "37909eebbb50d72f9059c3b6d82c0463f2ff062c9e95845c43a6c9c0355411be"
 
 [[package]]
 name = "fltk"
-version = "1.5.6"
+version = "1.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c77506d5be52962133581eec64190107802362acfa8c99a956592bd653b5a45c"
+checksum = "3930b72d58dea94d9903c5c733f10876f99415455c17d3219d525aef64920d25"
 dependencies = [
  "bitflags",
  "crossbeam-channel",
@@ -123,9 +123,9 @@ dependencies = [
 
 [[package]]
 name = "fltk-sys"
-version = "1.5.6"
+version = "1.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d3f2875cca090974dc0858cd78dcabfd74bd808f1f813b2ff469bdda413f22a"
+checksum = "3476b9c80f5fbaccbd38215d71a687fe0cbc333186e57c5b41e01d1c15045832"
 dependencies = [
  "cmake",
  "cmk",
@@ -163,21 +163,10 @@ checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
 [[package]]
 name = "lib_file"
 version = "0.1.0"
-source = "git+https://github.com/jtreagan/lib_file.git#620efb1883f3b0fef271a33ba0029d7d492c9f98"
+source = "git+https://github.com/jtreagan/lib_file.git#2cccd84b47f46f78a27d4e931e7c6a8e2292a38e"
 dependencies = [
  "fltk",
- "lib_jt",
-]
-
-[[package]]
-name = "lib_jt"
-version = "0.1.0"
-source = "git+https://github.com/jtreagan/lib_file.git#620efb1883f3b0fef271a33ba0029d7d492c9f98"
-dependencies = [
- "console",
- "dialoguer",
- "fltk",
- "rand",
+ "lib_utils",
 ]
 
 [[package]]
@@ -192,19 +181,23 @@ dependencies = [
 [[package]]
 name = "lib_utils"
 version = "0.1.0"
-source = "git+https://github.com/jtreagan/lib_utils.git#b86621e83a539d8aa13e9f2e6cb6243a870460c0"
+source = "git+https://github.com/jtreagan/lib_utils.git#477400d881ee4980352b5ff5246ac633297a12f8"
+dependencies = [
+ "dialoguer",
+ "rand",
+]
 
 [[package]]
 name = "libc"
-version = "0.2.171"
+version = "0.2.172"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c19937216e9d3aa9956d9bb8dfc0b0c8beb6058fc4f7a4dc4d850edf86a237d6"
+checksum = "d750af042f7ef4f724306de029d18836c26c1765a54a6a3f094cbd23a7267ffa"
 
 [[package]]
 name = "linux-raw-sys"
-version = "0.9.3"
+version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe7db12097d22ec582439daf8618b8fdd1a7bef6270e9af3b1ebcd30893cf413"
+checksum = "cd945864f07fe9f5371a27ad7b52a172b4b499999f1d97574c9fa68373937e12"
 
 [[package]]
 name = "memchr"
@@ -244,9 +237,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.94"
+version = "1.0.95"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a31971752e70b8b2686d7e46ec17fb38dad4051d94024c88df49b667caea9c84"
+checksum = "02b3e5e68a3a1a02aad3ec490a98007cbc13c37cbe84a3cd7b8e406d76e7f778"
 dependencies = [
  "unicode-ident",
 ]

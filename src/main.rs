@@ -4,15 +4,6 @@
     -- It does make sense to save the variables as files so that
             they may be reused globaly across different questions and banks.
 
-    // TODO: Merge   lib_fltk   &   lib_input_fltk   libraries.
-
-    -- Bank title display -- It would be nice if the title display at the top
-            of the display screen was also editable, but when I tried to do
-            that with FLTK's TextEditor struct it doesn't have that functionality.
-            I even got that confirmed by  MoAloysef  on the  fltk.rs github
-            forum.  This is a big weakness.  Makes me wonder if a different GUI might
-            be better.
-
     -- Eventually you will want to enter the objectives and prerequistes through
             a menu that lists all available items.
 
@@ -22,6 +13,7 @@
     -- Note that both o's and p's sometimes have images associated with them.
             How are you going to handle that?
     -- Do you want to attach p's to associated o's?
+        -- Yes.
 
     //TODO: Provide for re-ordering/moving questions in a bank.
 

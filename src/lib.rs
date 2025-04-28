@@ -4,16 +4,10 @@
         // TODO: All this needs to be user modifiable. -- next iteration.
         // TODO: Goal is for  WYSIWIG.  --  in the far, far future.
 
-        // TODO: Make the bank title bar RTF.  Then format it pretty.
         // TODO: Add second line to the title containing the associated textbook text.
-        // TODO: Tweak the bank display colors & etc.
         // TODO: Question display should show calculated values for the variables
         //          rather than the variable ID.  Maybe highlight the values so
         //          that the variable can be easily located.
-
-        // TODO: bnk_read() -- Put prompts in popup window off to the side of the dialog.
-        // TODO: bnk_read() -- Should return an option or result rather than  `unwrap()` or `panic!()`.
-
 
  */  // TODO's
 
@@ -443,7 +437,6 @@ pub mod questions {
     //endregion
 
     pub fn qst_create() {
-    // TODO: Make the starter text disappears as soon as user starts typing.
     // todo: The answer will need to parse inserted variables.
 
         let mut newquest = Question::new();
@@ -580,8 +573,6 @@ pub mod questions {
 
     pub fn qst_editor(startertxt: &str, winlabel: &str) -> String {
 
-        // TODO: Make the starter text disappear on first key stroke.
-
         let mut buf = TextBuffer::default();
         let mut edtrwin = window::Window::default().with_size(800, 300);
         set_font_size(20);
@@ -668,7 +659,6 @@ pub mod questions {
     }
 
     pub fn qst_read() -> Question {
-        // TODO: Should return an option or result rather than  `unwrap()` or `panic!()`.
 
         // region Choose the desired path.
         let usedir = QUESTION_DIR.to_string();
@@ -788,6 +778,10 @@ pub mod variable {
     }
 
     pub fn vrbl_input_parameters(data: &mut Variable) {  // Set boolean parameters only.  Leave data alone.
+
+        // todo: Turn all this into a window of radio and checkbox buttons for setting
+        //          these parameters.
+
         match data.var_type.as_str() {
             "Strings" => {  // Note that Strings should only come from a list.
                 data.params.is_string = true;
@@ -867,7 +861,6 @@ pub mod variable {
     }
 
     pub fn vrbl_read() -> Variable {
-        // todo: Should return an option or result rather than  `unwrap()`.
 
         // region Choose the correct directory path
         let mut usepath = VARIABLE_DIR.to_string();
@@ -902,7 +895,7 @@ pub mod variable {
 
      */   // vrbl_read_nogetpath()
 
-    pub fn vrbl_setvalues(var1: &mut Variable) {
+    pub fn vrbl_setvalues(var1: &mut Variable) {  // Note that this deals with
         //let lastdir = LAST_DIR_USED.lock().unwrap();
 
         if var1.params.is_from_list {  // The variable content is to come from a list.
@@ -972,7 +965,7 @@ pub mod variable {
                 _ => {}
             }
         } else {
-            if var1.params.is_int {
+            if var1.params.is_int {  // Numeric values will always be randomly generated.
                 let numint: i64 = math_gen_random_num(var1.params.num_min_int, var1.params.num_max_int);
                 var1.content = Integer(numint);
             } else {  // The content is a float.
