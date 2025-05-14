@@ -1,4 +1,30 @@
 
+//! # Question Bank Creator
+//! This program is targeted at teachers & homeschool parents and is
+//! especially useful for teaching math and science,
+//! although it also can be useful as an aide in the teaching of
+//! other disciplines.
+//! Curriculum developers will especially find it useful.  It allows
+//! the construction of test/worksheet/quiz/individual practice questions
+//! that contain dynamic content.  It then saves those questions -- using
+//! the json markdown language -- in user-defined ‘question banks’,
+//! thus keeping related questions together in the same file.
+//! A parent or teacher can create variables that generate dynamic values
+//! (either numeric, character, or string) using random or pseudo-random
+//! criteria set by the user.  Once constructed, the question is stored
+//! in a file (or 'question bank') for later access as needed.
+//! Parents or teachers can also make the app/questions available to
+//! students for student-directed practice.
+//!
+//!
+//!    * VERSION = "0.29.7";
+//!    * AUTHOR = "John T. Reagan";
+//!    * LICENSE = "GNU Version 3";
+//!    * LICENSE_URL = "<https://opensource.org/license/agpl-v3>";
+//!    * COPYRIGHT = "Copyright (c) 2025, John T. Reagan";
+//!    * REPOSITORY = "<https://github.com/jtreagan/Question-Bank-Creator>";
+
+
 /*                        Thoughts & Ideas
 
     -- It does make sense to save the variables as files so that
@@ -19,15 +45,6 @@
 
  */  // Thoughts & Ideas
 
-// region Credits Constants
-
-const _AUTHOR: &str = "John T. Reagan";
-const _DESCRIPTION: &str = "Create and edit question banks with dynamic content.  \n";
-const _LICENSE: &str = "MIT";
-const _COPYRIGHT: &str = "Copyright (c) 2021 <John T. Reagan>";
-
-// endregion
-
 use fltk::{app::*, prelude::*, prelude::WidgetExt};
 use fltk::enums::{Color};
 use lib_myfltk::fltkutils::fltk_popup_2btn;
@@ -37,7 +54,9 @@ use qbnk_rbld5::{banks::*, Wdgts};
 
 fn main() {
     let app = App::default();
-    *APP_FLTK.lock().unwrap() = app.clone();  // Store the app in the global variable.
+    {
+        *APP_FLTK.lock().unwrap() = app.clone();  // Store the app in the global variable.
+    }
 
     set_font_size(20);
     let mut wdgts = Wdgts::new();
@@ -45,10 +64,13 @@ fn main() {
     wdgts.prim_win.add(&menubar);
     primwin_setup(&mut wdgts.prim_win);
 
-    *WIDGETS.lock().unwrap() = wdgts.clone();
+    {
+        *WIDGETS.lock().unwrap() = wdgts.clone();
+    }  // Store the app in the global variable.
 
     wdgts.prim_win.show();
 
+    /*
     //region Set up and call the on-open popup window.
         // todo:  Why can't I move the popup stuff below to a separate function?
         //          It doesn't work.  I tried it.
@@ -74,6 +96,7 @@ fn main() {
     pop.end();
     pop.show();
     // endregion
+    */
 
     app.run().unwrap();
 }

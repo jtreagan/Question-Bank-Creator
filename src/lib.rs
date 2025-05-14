@@ -21,17 +21,31 @@ use fltk::window::Window;
 use std::sync::Mutex;
 
 // region  Global Constants
-pub const DEVELOPMENT_VERSION: &str = "Question Bank Rebuild 4";
-pub const PROGRAM_TITLE: &str = "Question Bank Creator";
-pub const VERSION: &str = "0.29.6";     // Note:  Versioning is decimal in nature.
 
+/// The current iteration of the program being worked on.
+pub const DEVELOPMENT_VERSION: &str = "Question Bank Rebuild 4";
+/// The title of the project.
+pub const PROGRAM_TITLE: &str = "Question Bank Creator";
+/// The current version..
+pub const VERSION: &str = "0.29.7";     // Note:  Versioning is decimal in nature.
+
+/// The default folder where data is saved.
 pub const DATA_GENERAL_FOLDER: &str = "/home/jtreagan/programming/rust/mine/qbnk_data";
+/// The default folder for saving Lists.
 pub const LIST_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/lists";
+/// The default folder for saving Variables.
 pub const VARIABLE_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/variables";
+
+/// This is no longer needed.
+///
 pub const QUESTION_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/questions";
+
+/// The default folder for saving Banks.
 pub const BANK_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/banks";
 
+/// Default height of the question display.
 pub const QDISP_HEIGHT: i32 = 150;
+/// Default width of the scrollbar.
 pub const SCROLLBAR_WIDTH: i32 = 15;
 // endregion
 
@@ -79,7 +93,11 @@ impl Clone for Wdgts {
 
 // endregion
 
+/// Holds the TypeWrapper struct.
+///
 pub mod global {
+    // todo:  Do you really need this?
+
     use serde::{Deserialize, Serialize};
 
     #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -91,6 +109,8 @@ pub mod global {
     }
 }  // End   global   module
 
+/// Functions that deal with the Bank struct.
+///
 pub mod banks {
     use crate::misc::{make_question_boxes, make_scrollgroup, make_title_txtedtr};
     use crate::{questions::*, Wdgts, APP_FLTK, BANK_DIR, CURRENT_BANK, LAST_DIR_USED, WIDGETS};
@@ -394,6 +414,8 @@ pub mod banks {
 
 }  // End    bank    module
 
+/// Functions that deal with the Question struct.
+///
 pub mod questions {
     use crate::banks::{bnk_refresh_widgets, bnk_save, Bank};
     use crate::variable::*;
@@ -661,6 +683,7 @@ pub mod questions {
     pub fn qst_read() -> Question {
 
         // region Choose the desired path.
+
         let usedir = QUESTION_DIR.to_string();
         println!("\n Please choose the Question file to be read.");
         let usepath = file_fullpath(&usedir);
@@ -701,6 +724,8 @@ pub mod questions {
 
 }  // End   questions   module
 
+/// Functions that deal with the Variable struct.
+///
 pub mod variable {
     use crate::global::TypeWrapper;
     use crate::global::TypeWrapper::*;
@@ -989,6 +1014,8 @@ pub mod variable {
     }
 } // End   variable   module
 
+/// Functions for creating and manipulating lists.
+///
 pub mod lists {
     use crate::{APP_FLTK, LAST_DIR_USED};
     use fltk::app::App;
@@ -1137,16 +1164,21 @@ pub mod lists {
 
 }  // End  lists module
 
+/// Functions for use in creating menus.
+///
 pub mod menus {
-    use crate::lists::list_create;
-    use crate::{banks::*, questions::*, variable::*};
+    use crate::{banks::*, questions::*, variable::*, lists::*};
     use fltk::app::quit;
     use fltk::enums::{Color, Shortcut};
     use fltk::menu;
     use fltk::prelude::{MenuExt, WidgetBase, WidgetExt};
     use fltk::window::Window;
+    use crate::misc::check_for_bank_loaded;
 
+    /// Create a menubar for the primary window.
     pub fn qbnk_menubar(primwin: &mut Window) -> menu::MenuBar {
+        // todo: `primwin` is in the global Widgets variable.  Access it
+        //          there rather than passing it to this function.
 
         let mut menubar = menu::MenuBar::new(0, 0, primwin.width(), 40, "");
 
@@ -1269,8 +1301,10 @@ pub mod menus {
             Shortcut::None,
             menu::MenuFlag::Normal,
             move |_| {
-                qst_create();
-                bnk_refresh_widgets();
+                if check_for_bank_loaded() {
+                    qst_create();
+                    bnk_refresh_widgets();
+                }
 
                 // Keep the window display open after this function finishes.
               //  while primwin1.shown() {
@@ -1387,6 +1421,8 @@ pub mod menus {
     }
 } //  End   menus  module
 
+/// Math-based functions.
+///
 pub mod math_functions {
     use num_traits::pow;
     use rand::distributions::uniform::SampleUniform;
@@ -1415,6 +1451,8 @@ pub mod math_functions {
 
 } // End   math_functions   module.
 
+/// Miscellaneous functions used by other modules.
+///
 pub mod misc {
     use crate::banks::Bank;
     use crate::questions::qst_edit;
@@ -1609,6 +1647,22 @@ pub mod misc {
 
         println!("\n The position of the primary window is :  ({}, {}) \n", xxx, yyy);
         println!("The size of the primary window is :  ({}, {}) \n", www, hhh);
+    }
+
+    /// Check to see if a bank has been loaded or not.
+    ///
+    pub fn check_for_bank_loaded() -> bool {
+        let mut usebank = Bank::new();
+        {
+            usebank = CURRENT_BANK.lock().unwrap().clone();
+        }
+        if usebank.bank_title.is_empty() {
+            println!("\n No bank has been loaded. \n");  // Find a non-terminal way to display this.
+            println!("   Please open a bank. \n");
+            false
+        } else {
+            true
+        }
     }
 
 }

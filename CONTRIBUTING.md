@@ -13,13 +13,15 @@ This project is written in Rust and as much as possible I would like to keep it 
    
 This project has not yet reached the point where it is even usable.  The code is rough, the error-handling nearly non-existent, and it all reflects my own poor skills as a self-taught and amateur Rust coder.  It is also becoming too big a project for me to handle and that is why I have put it out here on Github and am asking for help.  Please checkout the [Readme.md](https://github.com/jtreagan/Question-Bank-Creator/blob/master/README.md) for an example of what I am trying to accomplish here.
    
-There are other products out there that accomplish the same goals and are very well done, but all that I have found are proprietary and tied to commercial publishing products.  It is my intention that this project should be open source and, if not free to use, of minimal expense.  I'm leaving it open that some kind of monetization may be needed in case unanticipated expenses crop up.  
+There are other products out there that accomplish the same goals and are very well done, but all of those apps that I have found are proprietary and tied to commercial publishing products.  It is my intention that this project should be open source and, if not free to use, of minimal expense.  I'm leaving it open that some kind of monetization may be needed in case unanticipated expenses crop up.  
    
 ## Standards
 
-   * Keep the code as simple and uncomplicated as possible.  This is as much for my sake as for other contributors.  
+   * Keep the code as simple and uncomplicated as possible.  Make it as easy as possible on Rust novices.  This is as much for my sake as for other contributors.  Of course, code sometimes is unavoidably complicated, but let's at least try to write our code in as straightforward a manner as possible.
    
-   * Document your code.  In this I'd have to encourage you to NOT follow my example.  I'm slowly trying to add explanatory comments, but haven't done a very good job of it in the past.
+   * Please document your code.  In this I'd have to encourage you to NOT follow my example.  I'm slowly trying to add explanatory comments, but haven't done a very good job of it in the past.
+   
+   * One practice of the Rust community that I have found particularly annoying is that when documenting methods and functions there is a strong tendency to rely on the `assert!()` macros when writing examples.  That practice caused me no end of confusion when I was first trying to learn the Rust language.  To be honest, I still find that convention to be particularly unhelpful and even counterproductive when I am trying to learn how to use a particular feature.  The choice is yours, of course, but please avoid relying on the `assert!()` macros in your documentation if possible.
    
    
    

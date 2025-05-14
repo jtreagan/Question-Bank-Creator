@@ -52,7 +52,7 @@ Notice that the `question_vec` vector contains elements of type `Question` which
             pub prereqs: Vec<String>,
     }
     
-Notice that the `var_vec` vector contains elements of type `Variable` which is the third and inner level of the three structs.  It looks like this:
+Notice that the `var_vec` vector contains elements of type `Variable` which is the third and innermost level of the three structs.  It looks like this:
 
     pub struct Variable {
          pub var_fname: String,
@@ -62,7 +62,7 @@ Notice that the `var_vec` vector contains elements of type `Variable` which is t
          pub var_type: String,
     }
 
-    Another struct, `List`, is also important.  It looks like this:
+Another struct, `List`, is also important.  It looks like this:
     
         pub struct List {
             pub words: Vec<String>,
@@ -74,11 +74,11 @@ Notice that the `var_vec` vector contains elements of type `Variable` which is t
 
 ### User Workflow
 
-Lists and variables are the foundation of the workflow for any user.  A user can create a list of some type.  In the example above the user, before entering the text of the question, would have created four variables and two lists.  The first variable, the "distance" variable, would be set to choose integer values between 8 and 15 in one integer increments.  The second variable, the "time" variable, would be set to choose floating point values between 60.0 and 120.0 in 0.1 increments.  The third and fourth variables would be configured to randomly choose elements from two respective lists -- Coaches and StudentNames.
+Lists and variables are the foundation of the workflow for any user.  A user can create a list of any type.  In the example above the user, before entering the text of the question, would have created four variables and two lists.  The first variable, the "distance" variable, would be set to choose integer values between 8 and 15 in one integer increments.  The second variable, the "time" variable, would be set to choose floating point values between 60.0 and 120.0 in 0.1 increments.  The third and fourth variables would be configured to randomly choose elements from two respective lists -- Coaches and StudentNames.
 
 Lists are also user created and the user will create any needed list before entering the question text.   Variables of type `String` always look for a list from which to find the data that will be saved in the `Variable:content` field.
 
-Both `Variables` and `Lists` are saved in separate files in storage.  This allows the user to reuse them in future questions without needing to re-invent the wheel every time a new question is created.
+Both `Variables` and `Lists` are saved in separate files in storage.  This allows the user to reuse them in future questions without needing to "re-invent the wheel" every time a new question is created.
 
 ## Dependencies
 
@@ -88,7 +88,7 @@ Note that this app is not yet usable.  The project is currently being developed 
    * fltk-rs
    * num-traits
    
-It also uses several unpublished crates developed by the author.  Here is a copy of those dependencies from my local Cargo.toml file:
+It also uses several newly published crates developed by the author.  Here is a copy of those dependencies from my local Cargo.toml file:
 
 ### Reagan created crates
 
@@ -96,9 +96,10 @@ It also uses several unpublished crates developed by the author.  Here is a copy
    * lib_utils 
    * lib_myfltk
 
-These libraries have been pushed to Github and their repositories are public and accessible.  However, I am still in the process of setting them up for contributions.  If you see something there that you would like to work on, message me and we'll go from there.
+These libraries have been documented, but could use fine tuning and examples need to be added to the documention.  Their repositories are set up for contributions, so if you see something that you would like to work on, do a pull request and we can go from there.
 
 ## Author
+
    * John T. Reagan
    * johntreagan@gmail.com
 
