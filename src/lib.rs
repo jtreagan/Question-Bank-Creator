@@ -38,7 +38,7 @@ pub const VARIABLE_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/v
 
 /// This is no longer needed.
 ///
-pub const QUESTION_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/questions";
+// pub const QUESTION_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/questions";
 
 /// The default folder for saving Banks.
 pub const BANK_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/banks";
@@ -419,7 +419,7 @@ pub mod banks {
 pub mod questions {
     use crate::banks::{bnk_refresh_widgets, bnk_save, Bank};
     use crate::variable::*;
-    use crate::{APP_FLTK, CURRENT_BANK, QUESTION_DIR, VARIABLE_DIR};
+    use crate::{APP_FLTK, CURRENT_BANK, LAST_DIR_USED, VARIABLE_DIR};
     use fltk::app::set_font_size;
     use fltk::enums::{Color, Shortcut};
     use fltk::prelude::{DisplayExt, GroupExt, MenuExt, WidgetBase, WidgetExt, WindowExt};
@@ -683,8 +683,10 @@ pub mod questions {
     pub fn qst_read() -> Question {
 
         // region Choose the desired path.
-
-        let usedir = QUESTION_DIR.to_string();
+        let mut usedir = String::new();
+        {
+            usedir = LAST_DIR_USED.lock().unwrap().clone();
+        }
         println!("\n Please choose the Question file to be read.");
         let usepath = file_fullpath(&usedir);
         // endregion
