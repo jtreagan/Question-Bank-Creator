@@ -387,6 +387,7 @@ pub mod questions {
     }  // End   Question   impl
     //endregion
 
+    /// Create a new question.
     pub fn qst_create() {
     // todo: The answer will need to parse inserted variables.
 
@@ -426,6 +427,7 @@ pub mod questions {
 
     }
 
+    /// Edit a question.
     pub fn qst_edit(qst_idx: usize) {
 
         let mut app = app::App::default();
@@ -458,6 +460,8 @@ pub mod questions {
         bnk_refresh_widgets();
     }
 
+
+    /// // Is this necessary now?
     pub fn qst_chooseqst() -> Question {
 
         // TODO: Instead of trying to put the whole text of the question
@@ -487,8 +491,13 @@ pub mod questions {
         }
 
         editquest
-    }  // Is this necessary now?
+    }
 
+
+    /// Parses the text of a question looking for flags that mark
+    /// variables.  Separates out the flagged variables, reading the
+    /// data into Variable structs and saving them in the
+    /// `quest.var_vec` vector field of the current question.
     pub fn qst_fill_varvec_parsetext(quest: &mut Question) {
         // region Create a vector of the variable names that have been flagged in the text.
         let mut usevec = util_flaggedtxt_2vec(&quest.qtext, '§');
@@ -505,23 +514,8 @@ pub mod questions {
         // endregion
     }
 
-    /*
-        pub fn qst_fill_varvec_dirlist() -> Vec<Variable> {
-            println!("\n Please choose the variables you want to include as part of your question:  ");
-            let path = file_pathonly();
-            let flist = file_get_dir_list(&path);
-            let flist_vec = chkbox_shift_menu(&flist);
-            let mut usevec: Vec<Variable> = Vec::new();
-
-            for item in flist_vec {
-                let flist_fullpath = format!("{}/{}", path, item);
-                println!("{}", flist_fullpath);
-                usevec.push(vrbl_read_nogetpath(&flist_fullpath));
-            };
-            usevec
-        }
-    */   //fn qst_fill_varvec_dirlist()
-
+    /// Calls up an FLTK TextEditor for entering/editing question text
+    /// and variables.
     pub fn qst_editor(startertxt: &str, winlabel: &str) -> String {
 
         let mut buf = TextBuffer::default();
@@ -556,6 +550,7 @@ pub mod questions {
         buf.text()
     }
 
+    /// Menu bar for the `qst_editor`.
     pub fn qst_editor_menubar(edtr: &TextEditor, edtrwin: &mut window::Window, buf: &mut TextBuffer) -> menu::MenuBar {
         let mut menubar = menu::MenuBar::new(0, 0, edtrwin.width(), 40, "");
 
@@ -589,26 +584,33 @@ pub mod questions {
         menubar
     }
 
+    /// This function is called when the user highlights text that is
+    /// to be replaced by a variable. This function uses the variable name
+    /// to create text -- between flags -- that then replaces the highlighted text.
+    /// Returns the replacement text.
     pub fn qst_make_var_replace_text() -> String {
+
+        // todo: Allow for user to input a more readable variable name
+        //          than the name of the variable file name on disk.
+
         let usedir = VARIABLE_DIR.to_string();
 
         println!("Please choose the variable you want to insert. \n");
 
-        println!("\n W1: Start of qst_make_var_replace_text() \n");
         let path = file_pathonly(&usedir);
-        println!("\n W2: path = {} \n", path);
+        {
+            LAST_DIR_USED.lock().unwrap().clone_from(&path);  // Refresh LAST_DIR_USED
+        }
 
         let flist = file_get_dir_list(&path);
-        println!("\n W3: flist = {:?} \n", flist);
-
         let varname = fltk_radio_lightbtn_menu(&flist);
-        println!("\n W4: varname = {} \n", varname);
-
         let rpltxt = format!("§{}§", varname);
 
         rpltxt
     }
 
+    /*
+    /// This is no longer needed.
     pub fn qst_read() -> Question {
 
         // region Choose the desired path.
@@ -633,16 +635,28 @@ pub mod questions {
 
     }
 
+
     /*
+    pub fn qst_fill_varvec_dirlist() -> Vec<Variable> {
+        println!("\n Please choose the variables you want to include as part of your question:  ");
+        let path = file_pathonly();
+        let flist = file_get_dir_list(&path);
+        let flist_vec = chkbox_shift_menu(&flist);
+        let mut usevec: Vec<Variable> = Vec::new();
 
-        --How are you going to insert these variables into the text of the question?
-            -- You will have to use the cursor position when the user selects
-                the text being replaced by the variable.  That will be your break point.
-            -- Remember, you are entering the variable data into the question vector,
-                not the variable itself.
-                -- Only that's not true.  You need the variable itself there, somehow
-                    to use for recalculating the dynamic values.
+        for item in flist_vec {
+            let flist_fullpath = format!("{}/{}", path, item);
+            println!("{}", flist_fullpath);
+            usevec.push(vrbl_read_nogetpath(&flist_fullpath));
+        };
+        usevec
+    }
+*/   //fn qst_fill_varvec_dirlist()  --  delete later.
 
+     */  // Delete later.
+
+
+    /*
         -- Answers will be calculated from the current variable values.
 
         -- What are you going to do about operators and how they interact, especially
