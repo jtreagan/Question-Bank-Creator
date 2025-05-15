@@ -1125,12 +1125,10 @@ pub mod lists {
 /// Functions for use in creating menus.
 ///
 pub mod menus {
-    use crate::{banks::*, questions::*, variable::*, lists::*};
-    use fltk::app::quit;
+    use fltk::{app::quit, menu, window::Window};
     use fltk::enums::{Color, Shortcut};
-    use fltk::menu;
     use fltk::prelude::{MenuExt, WidgetBase, WidgetExt};
-    use fltk::window::Window;
+    use crate::{banks::*, questions::*, variable::*, lists::*};
     use crate::misc::check_for_bank_loaded;
 
     /// Create a menubar for the primary window.
@@ -1386,26 +1384,28 @@ pub mod math_functions {
     use rand::distributions::uniform::SampleUniform;
     use rand::{thread_rng, Rng};
 
+    /// Round an f64 to a given decimal place.
+    ///
     pub fn math_round_to_place_f64(num: &f64, place: usize) -> f64 {
         let factor = pow(10, place);
         let rounded = (num * factor as f64).round() / factor as f64;
-        return rounded;
+        rounded
     }
 
+    /// Generate and return a random number between the given min and max.
+    ///
+    /// Example:
+    ///
+    ///     fn main() {
+    ///         let choice: i64 = math_gen_random_num(-9, 9);
+    ///
+    ///         println!("\n Your random number is:   {} \n", choice);
+    ///     }
+    ///
     pub fn math_gen_random_num<T: SampleUniform + PartialOrd>(min: T, max: T) -> T {
         let mut rng = thread_rng();
         rng.gen_range(min..=max)
     }
-
-    /*
-    fn main() {
-        let choice: i64 = math_gen_random_num(-9, 9);
-
-        println!("\n Your random number is:   {} \n", choice);
-    }
-
- */ // Example usage math_gen_random_num()
-
 
 } // End   math_functions   module.
 
