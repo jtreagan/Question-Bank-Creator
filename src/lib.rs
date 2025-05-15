@@ -672,16 +672,15 @@ pub mod questions {
 /// Functions that deal with the Variable struct.
 ///
 pub mod variable {
-    use crate::global::TypeWrapper;
-    use crate::global::TypeWrapper::*;
-    use crate::lists::list_read;
-    use crate::math_functions::*;
-    use crate::{LAST_DIR_USED, VARIABLE_DIR};
-    use lib_file::file_fltk::*;
-    use lib_file::file_mngmnt::{file_path_to_fname, file_read_to_string};
+
+    use crate::global::{TypeWrapper, TypeWrapper::*};
+    use crate::{lists::*, math_functions::*, LAST_DIR_USED, VARIABLE_DIR};
+    use lib_file::{file_fltk::*, file_mngmnt::*};
     use lib_utils::{input_utilities::*, vec::*};
     use serde::{Deserialize, Serialize};
     use std::{fs::File, io::Write};
+
+    // todo: Can you do away with the TypeWrapper enum?
 
     //region Struct Section
     #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -739,6 +738,7 @@ pub mod variable {
     } // ~~~~~ End VarPrmtrs impl ~~~~~
     //endregion
 
+    /// Create a new variable.
     pub fn vrbl_create(typch: &str) {
         let mut var1 = Variable::new();
         var1.var_type = typch.to_string();
@@ -747,6 +747,7 @@ pub mod variable {
         vrbl_save(&mut var1);
     }
 
+    /// Set the parameters for a Variable.
     pub fn vrbl_input_parameters(data: &mut Variable) {  // Set boolean parameters only.  Leave data alone.
 
         // todo: Turn all this into a window of radio and checkbox buttons for setting
@@ -795,11 +796,13 @@ pub mod variable {
         }
     }
 
+    /// Input more data to be used in a variable.
     pub fn vrbl_input_vardata(data: &mut Variable) {
         data.var_fname = input_string_prompt("\n Please enter a title/filename for your new variable:  ");
         vrbl_setvalues(data);
     }
 
+    /// Prepare a Variable for saving.
     pub fn vrbl_save(var1: &mut Variable) {
         let lastdir = String::new();
         {
@@ -821,6 +824,7 @@ pub mod variable {
         println!("\n The variable has been saved.");
     }
 
+    /// Save a Variable in json format.
     pub fn vrbl_save_as_json(var: &Variable, usepath: &String) {
         let var_as_json = serde_json::to_string(var).unwrap();
 
@@ -830,6 +834,7 @@ pub mod variable {
             .expect("Cannot write to the file!");
     }
 
+    /// Read a variable from a file.
     pub fn vrbl_read() -> Variable {
 
         // region Choose the correct directory path
@@ -853,19 +858,8 @@ pub mod variable {
         }
     }
 
-    /*
-    pub fn vrbl_read_nogetpath(usepath: &Rc<RefCell<String>>) -> Variable {
-        // Should return an option or result rather than  `unwrap()`.
-
-        let data = util_read_file_to_string(&usepath);
-        let newvrbl = serde_json::from_str(&data).unwrap();
-
-        newvrbl
-    }
-
-     */   // vrbl_read_nogetpath()
-
-    pub fn vrbl_setvalues(var1: &mut Variable) {  // Note that this deals with
+    /// Sets and calculates the values of non-boolean fields in the Variable struct.
+    pub fn vrbl_setvalues(var1: &mut Variable) {
         //let lastdir = LAST_DIR_USED.lock().unwrap();
 
         if var1.params.is_from_list {  // The variable content is to come from a list.
@@ -946,6 +940,7 @@ pub mod variable {
         }
     }
 
+    /// Recalculates the values in the non-boolean fields of a Variable struct.
     pub fn vrbl_recalc() {
         let mut usevar = vrbl_read();
 
@@ -957,19 +952,32 @@ pub mod variable {
         println!("\n The variable after recalc is: \n {:?} \n", usevar);
 
     }
+
+    /*
+pub fn vrbl_read_nogetpath(usepath: &Rc<RefCell<String>>) -> Variable {
+    // Should return an option or result rather than  `unwrap()`.
+
+    let data = util_read_file_to_string(&usepath);
+    let newvrbl = serde_json::from_str(&data).unwrap();
+
+    newvrbl
+}
+
+ */   // vrbl_read_nogetpath()    delete later.
+
+
 } // End   variable   module
 
 /// Functions for creating and manipulating lists.
 ///
 pub mod lists {
-    use crate::{APP_FLTK, LAST_DIR_USED};
+    use std::{fs::File, io::Write};
+    use serde::{Deserialize, Serialize};
     use fltk::app::App;
     use lib_file::file_fltk::{file_browse_save_fltr, file_fullpath_fltr};
     use lib_file::file_mngmnt::file_read_to_string;
-    use serde::{Deserialize, Serialize};
-    use std::fs::File;
-    use std::io::Write;
     use lib_myfltk::input_fltk::*;
+    use crate::{APP_FLTK, LAST_DIR_USED};
 
     // region Struct section
     #[derive(Debug, Serialize, Deserialize)]
@@ -995,6 +1003,7 @@ pub mod lists {
 
     // endregion
 
+    ///
     pub fn list_create(typech: &str) {
         let mut app = App::default();
         {
