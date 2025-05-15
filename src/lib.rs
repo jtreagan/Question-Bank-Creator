@@ -35,14 +35,8 @@ pub const DATA_GENERAL_FOLDER: &str = "/home/jtreagan/programming/rust/mine/qbnk
 pub const LIST_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/lists";
 /// The default folder for saving Variables.
 pub const VARIABLE_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/variables";
-
-/// This is no longer needed.
-///
-// pub const QUESTION_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/questions";
-
 /// The default folder for saving Banks.
 pub const BANK_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/banks";
-
 /// Default height of the question display.
 pub const QDISP_HEIGHT: i32 = 150;
 /// Default width of the scrollbar.
@@ -50,13 +44,19 @@ pub const SCROLLBAR_WIDTH: i32 = 15;
 // endregion
 
 //region Global Variables
+/// Contains the question Bank that is currently being edited.
 pub static CURRENT_BANK: Lazy<Mutex<Bank>> = Lazy::new(|| Mutex::new(Bank::new()));
+/// Contains the last directory path that was used.
 pub static LAST_DIR_USED: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new(String::new()));
+/// Holds the currently running FLTK App.
 pub static APP_FLTK: Lazy<Mutex<App>> = Lazy::new(|| Mutex::new(App::default()));
+/// Holds the FLTK widgets currently being used.
 pub static WIDGETS: Lazy<Mutex<Wdgts>> = Lazy::new(|| Mutex::new(Wdgts::new()));
 //endregion
 
-// region Wdgts Struct that holds the primary window's widgets.
+// region structs
+/// Struct that holds the primary window's widgets.
+///
 pub struct Wdgts {
     pub prim_win: Window,
     pub title_editbox: TextEditor,
@@ -93,7 +93,7 @@ impl Clone for Wdgts {
 
 // endregion
 
-/// Holds the TypeWrapper struct.
+/// Holds the TypeWrapper enum.
 ///
 pub mod global {
     // todo:  Do you really need this?
@@ -152,6 +152,8 @@ pub mod banks {
 
     //endregion
 
+    /// Refreshes the contents of the widgets that are currently being displayed
+    /// and edited in the primary window.
     pub fn bnk_refresh_widgets() {
         let mut wdgts: Wdgts;
         {
@@ -167,6 +169,8 @@ pub mod banks {
         make_question_boxes();
     }
 
+    /// Creates a brand new question bank.
+    ///
     pub fn bnk_create() {
         let mut app = app::App::default();
         {
@@ -195,91 +199,8 @@ pub mod banks {
         //make_question_boxes();
     }
 
-    /*
-    pub fn bnk_display() -> Window {
-
-        //region Access the bank that is currently being used.
-        let usebank: Bank;
-        {
-            usebank = CURRENT_BANK.lock().unwrap().clone();
-        }  //endregion The locked global is now dropped and thus unlocked.
-
-        //region Set up display window.
-
-        let mut display_window = Window::default().with_size(825, 900).with_pos(1100, 200);
-        set_font_size(20);
-        display_window.set_color(Color::Cyan);
-        display_window.set_label( "Question Bank Display");
-        display_window.make_resizable(true);
-
-        let mut scroll = Scroll::new(0, 0, 825, 900, "");
-        scroll.set_scrollbar_size(15);
-        // endregion   This does not access any of the struct data.
-
-        // region Add frame for displaying title.
-        let mut titleframe = Frame::new(0, 0, 825, 50, usebank.bank_title.as_str() );
-        titleframe.set_frame(FrameType::BorderBox);
-        titleframe.set_color(fltk::enums::Color::Yellow);
-        titleframe.set_selection_color(fltk::enums::Color::from_rgb(200, 200, 200));
-        titleframe.set_label_size(22);
-        //endregion
-
-        //region Add TextDisplay boxes and buttons
-
-        let mut yyy = 76;
-        let mut nnn = 1;
-
-        // The loop below sets up display boxes for each question in the bank.
-        for question in usebank.question_vec.iter() {
-            let qlabel = format!("Question {} :  ", nnn);   // Create the question label
-            let mut txtbuff = TextBuffer::default();        //   and set up text buffer.
-            txtbuff.set_text(question.qtext.as_str());
-
-            // region Setup the display box and it's attributes.
-            let mut display = TextDisplay::new(0, yyy, 825, 150, qlabel.as_str());
-            display.set_buffer(txtbuff);
-            display.wrap_mode(text::WrapMode::AtBounds, 0);
-            display.set_color(fltk::enums::Color::White);
-            display.set_text_size(22);
-            display.set_text_color(fltk::enums::Color::Black);
-            // endregion
-
-            // region Setup the edit button & callback
-            let editbtn_x = display.x() + display.w() - 50;
-            let editbtn_y = display.y() + display.h() - 30;
-            let mut editbtn = Button::new(editbtn_x, editbtn_y, 50, 30, "Edit");
-
-            editbtn.set_callback(move |_| {
-                println!("\n Edit button for Question #{} has been pressed. \n", nnn);
-                qst_edit(nnn - 1);
-            });
-            // endregion
-
-            // TODO: Set up show/edit prereqs and objectives button
-            // TODO: Create a subframe to display/edit the answer.
-
-            yyy += 175;     // Increment the question display widget position.
-            nnn += 1;       // Increment the question display number.
-        }
-// endregion
-
-        scroll.end();
-        display_window.resizable(&scroll);
-        display_window.end();
-        display_window.show();
-
-        //while win.shown() {
-        //    app::wait();
-            //bnk_display();
-        //}
-
-        display_window
-
-        // TODO: Add a save dialog for when the display is closed.
-    }
-
-     */  //  No longer needed  bnk_display()
-
+    /// Reads a question bank's data from a file.
+    ///
     pub fn bnk_read() {
 
         // region Set up directories.
@@ -320,6 +241,8 @@ pub mod banks {
         }  // Pass the new bank into CURRENT_BANK
     }
 
+    /// Refreshes the contents of the title box of a bank's display.
+    ///
     pub fn bnk_refresh_title() {
         let usebank: Bank;
         let mut wdgts: Wdgts;
@@ -336,6 +259,8 @@ pub mod banks {
         wdgts.title_editbox.buffer().unwrap().text();
     }
 
+    /// Prepares a Bank struct for saving.
+    ///
     pub fn bnk_save() {
         // region TODO's
         // TODO: Find way to insert bank title into the save-file dialog.
@@ -361,6 +286,8 @@ pub mod banks {
         bnk_save_as_json(&usepath);
     }
 
+    /// Saves a Bank struct to a file in json format.
+    ///
     pub fn bnk_save_as_json(usepath: &String) {
 
         let mut usebank = Bank::new();
@@ -376,6 +303,8 @@ pub mod banks {
             .expect("Cannot write to the file!");
     }
 
+    /// Recalculates the variables in the questions of a Bank.
+    ///
     pub fn bnk_recalc() {
         let mut usebank = Bank::new();
         {
