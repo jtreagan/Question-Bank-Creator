@@ -1412,28 +1412,24 @@ pub mod math_functions {
 /// Miscellaneous functions used by other modules.
 ///
 pub mod misc {
-    use crate::banks::Bank;
-    use crate::questions::qst_edit;
+    use crate::{banks::Bank, questions::qst_edit};
     use crate::{Wdgts, CURRENT_BANK, DEVELOPMENT_VERSION, PROGRAM_TITLE, QDISP_HEIGHT, SCROLLBAR_WIDTH, VERSION, WIDGETS};
     use fltk::prelude::{DisplayExt, GroupExt, WidgetBase, WidgetExt};
-    use fltk::text;
     use fltk::text::{TextBuffer, TextDisplay, TextEditor};
-    use fltk::window::Window;
+    use fltk::{text, window::Window};
     use fltk::{button::Button, enums::Color, group::Scroll};
 
+    /// Gets and returns the text from a given FLTK TextEditor.
     pub fn get_text_from_editor(editor: &TextEditor) -> String {
         if let Some(buffer) = editor.buffer() {
             let text = buffer.text(); // Retrieve the text from the associated buffer
-
-            println!("\n The text from the editor is: {} \n", buffer.text());
-
             return text;
-
         } else {
             String::new() // If no buffer is set, return an empty string
         }
     }
 
+    /// Sets up the primary window for QBC.
     pub fn primwin_setup(primwin: &mut Window) {  // Set up the primary window.
         //let mut primwin = Window::default().with_size(825, 900).with_pos(1000, 100);
         primwin.set_color(Color::Blue);
@@ -1441,6 +1437,7 @@ pub mod misc {
         primwin.set_label(fulltitle.as_str());
         primwin.make_resizable(true);
     }
+
 
     /*
     pub fn onopen_popup() -> Window {
@@ -1475,6 +1472,9 @@ pub mod misc {
 
      */  // No longer needed -- onopen_popup()
 
+
+    /// Creates and sets up an FLTK TextEditor window to use for
+    /// a title box when displaying a question Bank.
     pub fn make_title_txtedtr() {
 
         // todo: Add a line, smaller font, below the main title for
@@ -1505,8 +1505,9 @@ pub mod misc {
         //      difficult to do, so leave for later.
     }
 
+    /// Creates and sets up an FLTK scrollgroup to use
+    /// when displaying a question Bank.
     pub fn make_scrollgroup() {
-
         let mut wdgts: Wdgts;
         let usebank: Bank;
         {
@@ -1528,6 +1529,8 @@ pub mod misc {
         *WIDGETS.lock().unwrap() = wdgts.clone();    // Update the WIDGET global variable.
     }
 
+    /// Creates and sets up an FLTK TextDisplay boxes to use
+    /// when displaying the questions in a question Bank.
     pub fn make_question_boxes() {
         // region TODO's
         //todo: The question numbers are displaying weird.  First question's label doesn't
@@ -1595,6 +1598,23 @@ pub mod misc {
         *WIDGETS.lock().unwrap() = wdgts.clone();    // Update the WIDGET global variable.
     }
 
+    /// Check to see whether or not a bank has been loaded into memory.
+    pub fn check_for_bank_loaded() -> bool {
+        let mut usebank = Bank::new();
+        {
+            usebank = CURRENT_BANK.lock().unwrap().clone();
+        }
+        if usebank.bank_title.is_empty() {
+            println!("\n No bank has been loaded. \n");  // Find a non-terminal way to display this.
+            println!(" Please open a bank. \n");
+            false
+        } else {
+            true
+        }
+    }
+
+    /// Gets an FLTK window's position and dimension attributes.
+    /// Here for debugging purposes only.
     pub fn get_window_attrs(win: &Window) {
         // For debugging purposes.  Move to  lib.utils???
 
@@ -1607,22 +1627,5 @@ pub mod misc {
         println!("The size of the primary window is :  ({}, {}) \n", www, hhh);
     }
 
-    /// Check to see if a bank has been loaded or not.
-    ///
-    pub fn check_for_bank_loaded() -> bool {
-        let mut usebank = Bank::new();
-        {
-            usebank = CURRENT_BANK.lock().unwrap().clone();
-        }
-        if usebank.bank_title.is_empty() {
-            println!("\n No bank has been loaded. \n");  // Find a non-terminal way to display this.
-            println!("   Please open a bank. \n");
-            false
-        } else {
-            true
-        }
-    }
-
 }
-
 
