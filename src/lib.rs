@@ -1003,7 +1003,7 @@ pub mod lists {
 
     // endregion
 
-    ///
+    /// Create a new list.
     pub fn list_create(typech: &str) {
         let mut app = App::default();
         {
@@ -1047,6 +1047,8 @@ pub mod lists {
         // Note that the function saves the list, but does not return it.
     }
 
+    /// Read a list (in json format) from a file.  Returns a tuple (filename, List)
+    /// containing the file name that was read along with the reconstituted list.
     pub fn list_read(typech: &str) -> (String, List) {
 
         let mut startdir = String::new();
@@ -1056,6 +1058,8 @@ pub mod lists {
 
         // TODO: Should return an option or result rather than  `unwrap()` or `panic!()`.
         // TODO: This has not been tested after the last modifications were made.
+        // todo: You aren't dealing with LAST_DIR_USED correctly.
+        // todo: The returns of this function don't look right.  Check it out.
 
         let readlist = loop {
             let usename = file_fullpath_fltr(&startdir, "*.lst");
@@ -1077,14 +1081,14 @@ pub mod lists {
 
         readlist
     }
-    // Function returns tuple containing the file name that was read
-    //      along with the reconstituted list.
 
+    /// Edit an existing list.  Not yet implementd
     pub fn list_edit() {
 
         println!("\n Someday I'll write this function. \n");
-    }    // This function to be finished in future iteration.
+    }
 
+    /// Prepare a list for saving to a file.
     pub fn list_save(list: &List) -> String {
 
         let startdir = LAST_DIR_USED.lock().unwrap().clone(); // Access the last used directory.
@@ -1097,6 +1101,7 @@ pub mod lists {
         path
     }
 
+    /// Save a list in json format.
     pub fn list_save_as_json(list: &List, fname: &str) {
         let list_as_json = serde_json::to_string(list).unwrap();
 
@@ -1106,6 +1111,7 @@ pub mod lists {
             .expect("Cannot write to the file!");
     }
 
+    /// Check that a list contains the correct type of data.
     pub fn list_check_typematch(uselist: &List, typech: &str) -> bool {
         if uselist.typechoice.as_str() != typech {
             println!("\n The data type of that list does not match your typechoice. \n");
@@ -1113,8 +1119,6 @@ pub mod lists {
             false
         } else { true }
     }
-
-
 
 }  // End  lists module
 
