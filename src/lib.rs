@@ -116,13 +116,17 @@ pub mod banks {
     use crate::{questions::*, Wdgts, APP_FLTK, BANK_DIR, CURRENT_BANK, LAST_DIR_USED, WIDGETS};
     use fltk::prelude::{DisplayExt, GroupExt, WidgetExt};
     use fltk::text::TextBuffer;
-    use fltk::app;
     use lib_file::{file_fltk::*, file_mngmnt::file_read_to_string};
-    use lib_myfltk::{fltkutils::*, input_fltk::*};
+    use lib_myfltk::{input_fltk::*};
     use serde::{Deserialize, Serialize};
     use std::{fs::File, io::Write};
 
     //region Struct Section
+
+    /// The outermost of the three structs QBC is built around.
+    /// Note that the field `question_vec: Vec<Question>` is a vector
+    /// of type `Question`.  `Question` is the second layer in the
+    /// three-struct nest.
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Bank {
         pub bank_title: String,   // Also used for file name.
@@ -131,6 +135,8 @@ pub mod banks {
     }
 
     impl Bank {
+
+        /// Initialize a new question Bank.
         pub fn new() -> Bank {
             Self {
                 bank_title: "No Bank Loaded".to_string(),
@@ -141,11 +147,13 @@ pub mod banks {
     }
 
     impl Clone for Bank {
+
+        /// Clone a question Bank.
         fn clone(&self) -> Self {
             Self {
                 bank_title: self.bank_title.clone(),
                 associated_textbook: self.associated_textbook.clone(),
-                question_vec: self.question_vec.clone(), // Vec itself implements Clone.
+                question_vec: self.question_vec.clone(), // Vec itself does implement Clone.
             }
         }
     }
@@ -172,13 +180,10 @@ pub mod banks {
     /// Creates a brand new question bank.
     ///
     pub fn bnk_create() {
-        let mut app = app::App::default();
+        let app;
         {
             app = APP_FLTK.lock().unwrap().clone();
         } // Access the main app.
-
-
-        //let usetitle =
 
         // Input values into the struct fields.
         let mut newbank = Bank::new();
@@ -290,7 +295,7 @@ pub mod banks {
     ///
     pub fn bnk_save_as_json(usepath: &String) {
 
-        let mut usebank = Bank::new();
+        let usebank;
         {
             usebank = CURRENT_BANK.lock().unwrap().clone();
         }
@@ -306,7 +311,7 @@ pub mod banks {
     /// Recalculates the variables in the questions of a Bank.
     ///
     pub fn bnk_recalc() {
-        let mut usebank = Bank::new();
+        let usebank;
         {
             usebank = CURRENT_BANK.lock().unwrap().clone();
         }
@@ -355,7 +360,7 @@ pub mod questions {
     use fltk::text::{TextBuffer, TextEditor};
     use fltk::{app, menu, text, window};
     use lib_file::file_fltk::*;
-    use lib_file::file_mngmnt::{file_get_dir_list, file_read_to_string};
+    use lib_file::file_mngmnt::{file_get_dir_list};
     use lib_myfltk::fltkutils::*;
     use lib_myfltk::input_fltk::{input_string, input_strvec};
     use lib_utils::utilities::*;
@@ -363,6 +368,10 @@ pub mod questions {
 
     //region Struct Section
 
+    /// The second layer of the three structs QBC is built around.
+    /// Note that the field `var_vec: Vec<Variable>` is a vector
+    /// of type `Variable`.  `Variable` is the third and innermost layer in the
+    /// three-struct nest.
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Question {
         pub qtext: String,
@@ -374,6 +383,8 @@ pub mod questions {
     }
 
     impl Question {
+
+        /// Initialize a new Question.
         fn new() -> Question {
             Self {
                 qtext: "Please enter the text of your question.  Use real values. You will replace those values with variables later.  Be sure to delete these instructions before entering your question text.".to_string(),
@@ -388,12 +399,13 @@ pub mod questions {
     //endregion
 
     /// Create a new question.
+    /// 
     pub fn qst_create() {
     // todo: The answer will need to parse inserted variables.
 
         let mut newquest = Question::new();
 
-// region Question data entry
+        // region Question data entry
 
         let nowtext = qst_editor(newquest.qtext.as_str(), "Question Editor");
         newquest.qtext = nowtext.clone();
@@ -403,7 +415,7 @@ pub mod questions {
 
                 // Answer will eventually need to be calculated.
 
-        let mut app = app::App::default();
+        let app;
         {
             app = APP_FLTK.lock().unwrap().clone();
         }
@@ -411,7 +423,7 @@ pub mod questions {
         newquest.answer = input_string(&app, "Please input the question's answer:  ", 790, 300);
         newquest.objectives = input_strvec(&app, "Please enter the question objectives:  ", 790, 300);
         newquest.prereqs = input_strvec(&app, "Please enter the question prerequisites:  ", 790, 300);
-// endregion
+        // endregion
 
 // region Save and store the data
         let mut usebank: Bank;
@@ -428,10 +440,11 @@ pub mod questions {
     }
 
     /// Edit a question.
+    /// 
     pub fn qst_edit(qst_idx: usize) {
 
-        let mut app = app::App::default();
-        let mut usebank = Bank::new();
+        let app;
+        let mut usebank;
         {
             app = APP_FLTK.lock().unwrap().clone();
             usebank = CURRENT_BANK.lock().unwrap().clone();
@@ -462,6 +475,7 @@ pub mod questions {
 
 
     /// // Is this necessary now?
+    /// 
     pub fn qst_chooseqst() -> Question {
 
         // TODO: Instead of trying to put the whole text of the question
@@ -472,7 +486,7 @@ pub mod questions {
 
         let mut usevec: Vec<String> = Vec::new();
 
-        let mut usebank = Bank::new();
+        let usebank;
         {
             usebank = CURRENT_BANK.lock().unwrap().clone();
         }
@@ -551,6 +565,7 @@ pub mod questions {
     }
 
     /// Menu bar for the `qst_editor`.
+    /// 
     pub fn qst_editor_menubar(edtr: &TextEditor, edtrwin: &mut window::Window, buf: &mut TextBuffer) -> menu::MenuBar {
         let mut menubar = menu::MenuBar::new(0, 0, edtrwin.width(), 40, "");
 
@@ -683,6 +698,9 @@ pub mod variable {
     // todo: Can you do away with the TypeWrapper enum?
 
     //region Struct Section
+
+    /// The third and innermost layer of the three struct nest QBC is built around.
+    /// 
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Variable {
         pub var_fname: String,
@@ -693,6 +711,8 @@ pub mod variable {
     }
 
     impl Variable {
+
+        /// Initialize a new Variable.
         pub fn new() -> Variable {
             Self {
                 var_fname: "new_variable".to_string(),
@@ -704,6 +724,8 @@ pub mod variable {
         }
     } // End Variable impl
 
+    /// Struct that contains the parameters that determine the behavior
+    /// of a Variable.
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct VarPrmtrs {
         pub is_string: bool,
@@ -739,6 +761,7 @@ pub mod variable {
     //endregion
 
     /// Create a new variable.
+    /// 
     pub fn vrbl_create(typch: &str) {
         let mut var1 = Variable::new();
         var1.var_type = typch.to_string();
@@ -748,6 +771,7 @@ pub mod variable {
     }
 
     /// Set the parameters for a Variable.
+    /// 
     pub fn vrbl_input_parameters(data: &mut Variable) {  // Set boolean parameters only.  Leave data alone.
 
         // todo: Turn all this into a window of radio and checkbox buttons for setting
@@ -797,21 +821,21 @@ pub mod variable {
     }
 
     /// Input more data to be used in a variable.
+    /// 
     pub fn vrbl_input_vardata(data: &mut Variable) {
         data.var_fname = input_string_prompt("\n Please enter a title/filename for your new variable:  ");
         vrbl_setvalues(data);
     }
 
     /// Prepare a Variable for saving.
+    /// 
     pub fn vrbl_save(var1: &mut Variable) {
-        let lastdir = String::new();
         {
             if LAST_DIR_USED.lock().unwrap().clone() == "" {
                 *LAST_DIR_USED.lock().unwrap() = VARIABLE_DIR.to_string().clone();
             }  // If no path loaded, use default.
-            let lastdir = LAST_DIR_USED.lock().unwrap().clone();
         }  // Access the global variable.
-
+        let lastdir = LAST_DIR_USED.lock().unwrap().clone();
         let usepath = file_browse_save_fltr(&lastdir, "Variable Files   \t*.vrbl\nText Files   \t*.txt\nList Files    \t*.lst\nAll Files    \t*.*");
 
         {
@@ -825,6 +849,7 @@ pub mod variable {
     }
 
     /// Save a Variable in json format.
+    /// 
     pub fn vrbl_save_as_json(var: &Variable, usepath: &String) {
         let var_as_json = serde_json::to_string(var).unwrap();
 
@@ -835,6 +860,7 @@ pub mod variable {
     }
 
     /// Read a variable from a file.
+    /// 
     pub fn vrbl_read() -> Variable {
 
         // region Choose the correct directory path
@@ -859,6 +885,7 @@ pub mod variable {
     }
 
     /// Sets and calculates the values of non-boolean fields in the Variable struct.
+    /// 
     pub fn vrbl_setvalues(var1: &mut Variable) {
         //let lastdir = LAST_DIR_USED.lock().unwrap();
 
@@ -941,6 +968,7 @@ pub mod variable {
     }
 
     /// Recalculates the values in the non-boolean fields of a Variable struct.
+    /// 
     pub fn vrbl_recalc() {
         let mut usevar = vrbl_read();
 
@@ -973,13 +1001,15 @@ pub fn vrbl_read_nogetpath(usepath: &Rc<RefCell<String>>) -> Variable {
 pub mod lists {
     use std::{fs::File, io::Write};
     use serde::{Deserialize, Serialize};
-    use fltk::app::App;
     use lib_file::file_fltk::{file_browse_save_fltr, file_fullpath_fltr};
     use lib_file::file_mngmnt::file_read_to_string;
     use lib_myfltk::input_fltk::*;
-    use crate::{APP_FLTK, LAST_DIR_USED};
+    use crate::{APP_FLTK, LAST_DIR_USED, VARIABLE_DIR};
 
     // region Struct section
+
+    /// Contains a vector field for each of the four data types
+    /// allowed in lists associated with QBC.
     #[derive(Debug, Serialize, Deserialize)]
     pub struct List {
         pub words: Vec<String>,
@@ -990,6 +1020,8 @@ pub mod lists {
     }
 
     impl List {
+
+        /// Initializes a new list struct.
         pub fn new() -> List {
             Self {
                 words: Vec::new(),
@@ -1004,14 +1036,15 @@ pub mod lists {
     // endregion
 
     /// Create a new list.
+    /// 
     pub fn list_create(typech: &str) {
-        let mut app = App::default();
+        let mut newlist = List::new();
+        newlist.typechoice = typech.to_string();
+        
+        let app;
         {
             app = APP_FLTK.lock().unwrap().clone();
         }
-
-        let mut newlist = List::new();
-        newlist.typechoice = typech.to_string();
 
         match typech {
             "String" | "Strings" => {     // String
@@ -1051,18 +1084,25 @@ pub mod lists {
     /// containing the file name that was read along with the reconstituted list.
     pub fn list_read(typech: &str) -> (String, List) {
 
-        let mut startdir = String::new();
         {
-            startdir = LAST_DIR_USED.lock().unwrap().clone();
-        }
+            if LAST_DIR_USED.lock().unwrap().clone() == "" {
+                *LAST_DIR_USED.lock().unwrap() = VARIABLE_DIR.to_string().clone();
+            }  // If no path loaded, use default.
+        }  // Access the global variable.
+        let lastdir = LAST_DIR_USED.lock().unwrap().clone();
+        
+        //let mut startdir = String::new();
+        //{
+            //startdir = LAST_DIR_USED.lock().unwrap().clone();
+        //}
 
-        // TODO: Should return an option or result rather than  `unwrap()` or `panic!()`.
+        // TODO: Should this return an option or result rather than  `unwrap()` or `panic!()`?
         // TODO: This has not been tested after the last modifications were made.
         // todo: You aren't dealing with LAST_DIR_USED correctly.
         // todo: The returns of this function don't look right.  Check it out.
 
         let readlist = loop {
-            let usename = file_fullpath_fltr(&startdir, "*.lst");
+            let usename = file_fullpath_fltr(&lastdir, "*.lst");
             *LAST_DIR_USED.lock().unwrap() = usename.clone();
 
             match file_read_to_string(&usename) {
@@ -1083,12 +1123,14 @@ pub mod lists {
     }
 
     /// Edit an existing list.  Not yet implementd
+    /// 
     pub fn list_edit() {
 
         println!("\n Someday I'll write this function. \n");
     }
 
     /// Prepare a list for saving to a file.
+    /// 
     pub fn list_save(list: &List) -> String {
 
         let startdir = LAST_DIR_USED.lock().unwrap().clone(); // Access the last used directory.
@@ -1102,6 +1144,7 @@ pub mod lists {
     }
 
     /// Save a list in json format.
+    /// 
     pub fn list_save_as_json(list: &List, fname: &str) {
         let list_as_json = serde_json::to_string(list).unwrap();
 
@@ -1112,6 +1155,7 @@ pub mod lists {
     }
 
     /// Check that a list contains the correct type of data.
+    /// 
     pub fn list_check_typematch(uselist: &List, typech: &str) -> bool {
         if uselist.typechoice.as_str() != typech {
             println!("\n The data type of that list does not match your typechoice. \n");
@@ -1407,7 +1451,7 @@ pub mod math_functions {
         rng.gen_range(min..=max)
     }
 
-} // End   math_functions   module.
+} // End   math_functions   module
 
 /// Miscellaneous functions used by other modules.
 ///
@@ -1420,6 +1464,7 @@ pub mod misc {
     use fltk::{button::Button, enums::Color, group::Scroll};
 
     /// Gets and returns the text from a given FLTK TextEditor.
+    /// 
     pub fn get_text_from_editor(editor: &TextEditor) -> String {
         if let Some(buffer) = editor.buffer() {
             let text = buffer.text(); // Retrieve the text from the associated buffer
@@ -1430,6 +1475,7 @@ pub mod misc {
     }
 
     /// Sets up the primary window for QBC.
+    /// 
     pub fn primwin_setup(primwin: &mut Window) {  // Set up the primary window.
         //let mut primwin = Window::default().with_size(825, 900).with_pos(1000, 100);
         primwin.set_color(Color::Blue);
@@ -1492,8 +1538,8 @@ pub mod misc {
 
         let mut ted = TextEditor::new(0, 40, wdgts.prim_win.width(), 60, "");
         ted.set_text_size(32);
-        ted.set_text_color(fltk::enums::Color::White);
-        ted.set_color(fltk::enums::Color::DarkMagenta);
+        ted.set_text_color(Color::White);
+        ted.set_color(Color::DarkMagenta);
         ted.set_buffer(buf.clone());   // Clone is used here to avoid an ownership error.
 
         wdgts.title_editbox = ted.clone();  // Store the widgit in the widget struct.
@@ -1599,13 +1645,11 @@ pub mod misc {
     }
 
     /// Check to see whether or not a bank has been loaded into memory.
+    /// 
     pub fn check_for_bank_loaded() -> bool {
-        let mut usebank = Bank::new();
-        {
-            usebank = CURRENT_BANK.lock().unwrap().clone();
-        }
+        let usebank = CURRENT_BANK.lock().unwrap().clone();
         if usebank.bank_title.is_empty() {
-            println!("\n No bank has been loaded. \n");  // Find a non-terminal way to display this.
+            println!("\n No bank has been loaded. \n");  // todo: Find a non-terminal way to display this.
             println!(" Please open a bank. \n");
             false
         } else {
@@ -1627,5 +1671,5 @@ pub mod misc {
         println!("The size of the primary window is :  ({}, {}) \n", www, hhh);
     }
 
-}
+}  // End   misc   module
 
