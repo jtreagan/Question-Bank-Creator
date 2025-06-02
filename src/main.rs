@@ -46,17 +46,15 @@
  */  // Thoughts & Ideas
 
 use fltk::{app::*, prelude::*, prelude::WidgetExt};
-use fltk::enums::{Color};
-use lib_myfltk::fltkutils::fltk_popup_2btn;
-use qbnk_rbld5::{menus::*, misc::*};
-use qbnk_rbld5::{APP_FLTK, WIDGETS};
-use qbnk_rbld5::{banks::*, Wdgts};
+use rebuild6::{menus::*, misc::*};
+use rebuild6::{APP_FLTK, WIDGETS};
+use rebuild6::{Wdgts};
 
 fn main() {
     let app = App::default();
     {
-        *APP_FLTK.lock().unwrap() = app.clone();  // Store the app in the global variable.
-    }
+        *APP_FLTK.lock().unwrap() = app.clone();  
+    }  // Store the app in the global variable.
 
     set_font_size(20);
     let mut wdgts = Wdgts::new();
@@ -66,7 +64,7 @@ fn main() {
 
     {
         *WIDGETS.lock().unwrap() = wdgts.clone();
-    }  // Store the app in the global variable.
+    }  // Store wdgts in the global variable.
 
     wdgts.prim_win.show();
 
@@ -96,7 +94,7 @@ fn main() {
     pop.end();
     pop.show();
     // endregion
-    */
+    */  // Deletemeplease
 
     app.run().unwrap();
 }
