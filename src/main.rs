@@ -7,7 +7,7 @@
 //! Curriculum developers will especially find it useful.  It allows
 //! the construction of test/worksheet/quiz/individual practice questions
 //! that contain dynamic content.  It then saves those questions -- using
-//! the json markdown language -- in user-defined ‘question banks’,
+//! serde.json -- in user-defined ‘question banks’,
 //! thus keeping related questions together in the same file.
 //! A parent or teacher can create variables that generate dynamic values
 //! (either numeric, character, or string) using random or pseudo-random
@@ -22,7 +22,7 @@
 //!    * LICENSE = "GNU Version 3";
 //!    * LICENSE_URL = "<https://opensource.org/license/agpl-v3>";
 //!    * COPYRIGHT = "Copyright (c) 2025, John T. Reagan";
-//!    * REPOSITORY = "<https://github.com/jtreagan/Question-Bank-Creator>";
+//!    * REPOSITORY = "<https://github.com/jtreagan/Question-Bank-Creator>";    
 
 
 /*                        Thoughts & Ideas

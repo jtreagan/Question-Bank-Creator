@@ -23,34 +23,48 @@ use std::sync::Mutex;
 // region  Global Constants
 
 /// The current iteration of the program being worked on.
+/// 
 pub const DEVELOPMENT_VERSION: &str = "Question Bank Rebuild 4";
 /// The title of the project.
+/// 
 pub const PROGRAM_TITLE: &str = "Question Bank Creator";
 /// The current version..
-pub const VERSION: &str = "0.29.7";     // Note:  Versioning is decimal in nature.
+/// 
+pub const VERSION: &str = "0.29.7";     
+// Note:  Versioning, while semantic in format, is decimal in nature.
 
 /// The default folder where data is saved.
+/// 
 pub const DATA_GENERAL_FOLDER: &str = "/home/jtreagan/programming/rust/mine/qbnk_data";
 /// The default folder for saving Lists.
+/// 
 pub const LIST_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/lists";
 /// The default folder for saving Variables.
+/// 
 pub const VARIABLE_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/variables";
 /// The default folder for saving Banks.
+/// 
 pub const BANK_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/banks";
 /// Default height of the question display.
+/// 
 pub const QDISP_HEIGHT: i32 = 150;
 /// Default width of the scrollbar.
+/// 
 pub const SCROLLBAR_WIDTH: i32 = 15;
 // endregion
 
 //region Global Variables
 /// Contains the question Bank that is currently being edited.
+/// 
 pub static CURRENT_BANK: Lazy<Mutex<Bank>> = Lazy::new(|| Mutex::new(Bank::new()));
 /// Contains the last directory path that was used.
+/// 
 pub static LAST_DIR_USED: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new(String::new()));
 /// Holds the currently running FLTK App.
+/// 
 pub static APP_FLTK: Lazy<Mutex<App>> = Lazy::new(|| Mutex::new(App::default()));
 /// Holds the FLTK widgets currently being used.
+/// 
 pub static WIDGETS: Lazy<Mutex<Wdgts>> = Lazy::new(|| Mutex::new(Wdgts::new()));
 //endregion
 
@@ -180,6 +194,9 @@ pub mod banks {
     /// Creates a brand new question bank.
     ///
     pub fn bnk_create() {
+        
+        // todo: Check for bank in memory before proceeding.
+        
         let app;
         {
             app = APP_FLTK.lock().unwrap().clone();
@@ -207,6 +224,8 @@ pub mod banks {
     /// Reads a question bank's data from a file.
     ///
     pub fn bnk_read() {
+
+        // todo: Check for bank in memory before proceeding.
 
         // region Set up directories.
 
