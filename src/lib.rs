@@ -713,7 +713,12 @@ pub mod variable {
     use lib_utils::{input_utilities::*, vec::*};
     use serde::{Deserialize, Serialize};
     use std::{fs::File, io::Write};
-
+    use fltk::app::channel;
+    use fltk::button::{Button, RadioButton};
+    use fltk::group::Group;
+    use fltk::prelude::{ButtonExt, GroupExt, WidgetBase, WidgetExt, WindowExt};
+    use fltk::window::Window;
+    use lib_myfltk::fltkutils::fltk_radio_lightbtn_menu;
     // todo: Can you do away with the TypeWrapper enum?
 
     //region Struct Section
@@ -722,7 +727,9 @@ pub mod variable {
     /// 
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Variable {
-        pub var_fname: String,
+        pub var_fname: String,  // Should not need this.  
+        // Once it is read it should be stored in the Question struct.
+        // Maybe replace with a description?  That could be useful.
         pub params: VarPrmtrs,
         pub list_fname: String,
         pub content: TypeWrapper,
@@ -781,9 +788,10 @@ pub mod variable {
 
     /// Create a new variable.
     /// 
-    pub fn vrbl_create(typch: &str) {
+    pub fn vrbl_create() {
         let mut var1 = Variable::new();
-        var1.var_type = typch.to_string();
+        let typevec = vec!["String".to_string(), "Character".to_string(), "Integer".to_string(), "Decimal".to_string()];
+        var1.var_type = fltk_radio_lightbtn_menu(&typevec);
         vrbl_input_parameters(&mut var1);
         vrbl_input_vardata(&mut var1);
         vrbl_save(&mut var1);
@@ -1344,6 +1352,17 @@ pub mod menus {
         //region Variable Section
 
         menubar.add(
+            "Variable/New\t",
+            Shortcut::None,
+            menu::MenuFlag::Normal,
+            move |_| {
+                vrbl_create();
+            },
+        );
+        
+        
+        /*
+        menubar.add(
             "Variable/New/String\t",
             Shortcut::None,
             menu::MenuFlag::Normal,
@@ -1387,6 +1406,9 @@ pub mod menus {
         );
 
         //endregion
+        
+         */  // Uneeded sub menu items.
+        // endregion
 
         //region List Section
 

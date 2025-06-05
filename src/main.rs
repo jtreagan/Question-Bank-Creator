@@ -46,9 +46,9 @@
  */  // Thoughts & Ideas
 
 use fltk::{app::*, prelude::*, prelude::WidgetExt};
-use rebuild6::{menus::*, misc::*};
-use rebuild6::{APP_FLTK, WIDGETS};
-use rebuild6::{Wdgts};
+use rebuild7::{menus::*, misc::*};
+use rebuild7::{APP_FLTK, WIDGETS};
+use rebuild7::{Wdgts};
 
 fn main() {
     let app = App::default();
@@ -67,34 +67,6 @@ fn main() {
     }  // Store wdgts in the global variable.
 
     wdgts.prim_win.show();
-
-    /*
-    //region Set up and call the on-open popup window.
-        // todo:  Why can't I move the popup stuff below to a separate function?
-        //          It doesn't work.  I tried it.
-
-                // region Set up button callback closures.
-    // Button -- Create a new question bank.
-    let bttn_newbank = move || {
-        bnk_create();
-        bnk_refresh_widgets();
-    };
-
-    // Button -- Open an existing question bank.
-    let bttn_openbank = move || {
-        bnk_read();
-        bnk_refresh_widgets();
-    };
-                // endregion
-
-    let mut pop = fltk_popup_2btn(&wdgts.prim_win, Box::new(bttn_newbank), "Create new bank",
-                                  Box::new(bttn_openbank), "Open existing bank");
-    pop.set_color(Color::Red);
-
-    pop.end();
-    pop.show();
-    // endregion
-    */  // Deletemeplease
 
     app.run().unwrap();
 }

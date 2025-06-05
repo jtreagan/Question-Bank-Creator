@@ -293,7 +293,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rebuild6"
+name = "rebuild7"
 version = "0.29.7"
 dependencies = [
  "fltk",
