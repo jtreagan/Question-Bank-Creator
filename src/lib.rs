@@ -35,16 +35,16 @@ pub const VERSION: &str = "0.29.7";
 
 /// The default folder where data is saved.
 /// 
-pub const DATA_GENERAL_FOLDER: &str = "/home/jtreagan/programming/rust/mine/qbnk_data";
+pub const DATA_GENERAL_FOLDER: &str = "/home/Willowcreek/programming/rust/mine/qbnk_data";
 /// The default folder for saving Lists.
 /// 
-pub const LIST_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/lists";
+pub const LIST_DIR: &str = "/home/Willowcreek/programming/rust/mine/qbnk_data/lists";
 /// The default folder for saving Variables.
 /// 
-pub const VARIABLE_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/variables";
+pub const VARIABLE_DIR: &str = "/home/Willowcreek/programming/rust/mine/qbnk_data/variables";
 /// The default folder for saving Banks.
 /// 
-pub const BANK_DIR: &str = "/home/jtreagan/programming/rust/mine/qbnk_data/banks";
+pub const BANK_DIR: &str = "/home/Willowcreek/programming/rust/mine/qbnk_data/banks";
 /// Default height of the question display.
 /// 
 pub const QDISP_HEIGHT: i32 = 150;
@@ -514,7 +514,7 @@ pub mod questions {
             usevec.push(item.qtext.clone());
         }
 
-        let usequest = fltk_radio_lightbtn_menu(&usevec);
+        let usequest = fltk_radio_lightbtn_menu(&usevec, "");
         let mut editquest = Question::new();
 
         for item in usebank.question_vec.iter() {
@@ -637,7 +637,7 @@ pub mod questions {
         }
 
         let flist = file_get_dir_list(&path);
-        let varname = fltk_radio_lightbtn_menu(&flist);
+        let varname = fltk_radio_lightbtn_menu(&flist, "");
         let rpltxt = format!("§{}§", varname);
 
         rpltxt
@@ -719,7 +719,7 @@ pub mod variable {
     use fltk::prelude::{ButtonExt, GroupExt, WidgetBase, WidgetExt, WindowExt};
     use fltk::window::Window;
     use lib_myfltk::fltkutils::fltk_radio_lightbtn_menu;
-    // todo: Can you do away with the TypeWrapper enum?
+    // todo: Can you do away with the TypeWrapper enum?  Probably not.
 
     //region Struct Section
 
@@ -727,9 +727,7 @@ pub mod variable {
     /// 
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Variable {
-        pub var_fname: String,  // Should not need this.  
-        // Once it is read it should be stored in the Question struct.
-        // Maybe replace with a description?  That could be useful.
+        pub var_fname: String,  
         pub params: VarPrmtrs,
         pub list_fname: String,
         pub content: TypeWrapper,
@@ -750,7 +748,7 @@ pub mod variable {
         }
     } // End Variable impl
 
-    /// Struct that contains the parameters that determine the behavior
+    /// Struct that holds the parameters that determine the behavior
     /// of a Variable.
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct VarPrmtrs {
@@ -758,6 +756,7 @@ pub mod variable {
         pub is_char: bool,
         pub is_from_list: bool,
         pub is_int: bool,
+        pub is_float: bool,
         pub num_min_int: i64,
         pub num_max_int: i64,
         pub num_min_float: f64,
@@ -766,13 +765,16 @@ pub mod variable {
         pub num_comma_frmttd: bool,
     }
 
-    impl VarPrmtrs {
+    impl VarPrmtrs { 
+        /// Creates a new variable.  Sets the
+        /// default variable type to `int` and all ranges to 0.
         pub fn new() -> VarPrmtrs {
             Self {
                 is_string: false,
                 is_char: false,
                 is_from_list: false,
                 is_int: true,
+                is_float: false,
                 num_min_int: 0,
                 num_max_int: 0,
                 num_min_float: 0.0,
@@ -790,12 +792,74 @@ pub mod variable {
     /// 
     pub fn vrbl_create() {
         let mut var1 = Variable::new();
-        let typevec = vec!["String".to_string(), "Character".to_string(), "Integer".to_string(), "Decimal".to_string()];
-        var1.var_type = fltk_radio_lightbtn_menu(&typevec);
+        let typelist = vec!["Strings".to_string(), "Character".to_string(), "Integers".to_string(), "Decimals".to_string()];
+        var1.var_type = fltk_radio_lightbtn_menu(&typelist, "Please choose the type of variable:");
+        
         vrbl_input_parameters(&mut var1);
         vrbl_input_vardata(&mut var1);
         vrbl_save(&mut var1);
+        
     }
+
+
+    /// Set the parameters for a Variable.
+    ///
+    pub fn vrbl_input_params_boxes(data: &mut Variable) {  // Set boolean parameters only.  Leave data alone.
+
+        // For Integers and Decimals, you will need to include input fields.
+        //
+        // For Floats, could you do a radiobox for the decimal places?
+        //      How many decimal places do you need to include for a 
+        //      science teacher concerned about significant digits?
+        //      May need to go back to an input field for the decimal places.
+        
+        
+        
+        
+
+        match data.var_type.as_str() {
+            "Strings" => {  // Note that Strings should only come from a list.
+                data.params.is_string = true;
+                data.params.is_int = false;
+                data.params.is_from_list = true;
+            }
+
+            "Character" => {  // Note that characters also can only come from a list.
+                data.params.is_char = true;
+                data.params.is_int = false;
+                data.params.is_from_list = true;
+            }
+
+            "Integers" => {
+                data.params.num_comma_frmttd = input_bool_prompt("\n Is the value to be comma formatted?   ");
+                let mini_choice = input_bool_prompt("\n Is the variable contents to come from a list?   ");
+                if mini_choice {
+                    data.params.is_from_list = true;
+                    return;
+                }
+                data.params.num_min_int = input_num_prompt("\n Please enter the minimum int value:  ");
+                data.params.num_max_int = input_num_prompt("\n Please enter the maximum int value:  ");
+            }
+
+            "Decimals" => {
+                data.params.is_int = false;
+                data.params.num_dcml_places = input_num_prompt("\n How many decimal places are allowed?  ");
+                data.params.num_comma_frmttd = input_bool_prompt("\n Is the value to be comma formatted?   ");
+
+                let mini_choice = input_bool_prompt("\n Is the variable contents to come from a list?   ");
+                if mini_choice {
+                    data.params.is_from_list = true;
+                    return;
+                }
+                data.params.num_min_float = input_num_prompt("\n Please enter the minimum float value:  ");
+                data.params.num_max_float = input_num_prompt("\n Please enter the maximum float value:  ");
+            }
+
+            _ => { unreachable!(); }
+        }
+    }
+    
+    
 
     /// Set the parameters for a Variable.
     /// 
@@ -811,13 +875,13 @@ pub mod variable {
                 data.params.is_from_list = true;
             }
 
-            "chars" => {     // Note that characters should only come from a list.
+            "Character" => {  // Note that characters also can only come from a list.
                 data.params.is_char = true;
                 data.params.is_int = false;
                 data.params.is_from_list = true;
             }
 
-            "ints" => {
+            "Integers" => {
                 data.params.num_comma_frmttd = input_bool_prompt("\n Is the value to be comma formatted?   ");
 
                 let mini_choice = input_bool_prompt("\n Is the variable contents to come from a list?   ");
@@ -829,7 +893,7 @@ pub mod variable {
                 data.params.num_max_int = input_num_prompt("\n Please enter the maximum int value:  ");
             }
 
-            "floats" => {
+            "Decimals" => {
                 data.params.is_int = false;
                 data.params.num_dcml_places = input_num_prompt("\n How many decimal places are allowed?  ");
                 data.params.num_comma_frmttd = input_bool_prompt("\n Is the value to be comma formatted?   ");
