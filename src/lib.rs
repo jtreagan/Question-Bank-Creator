@@ -35,20 +35,21 @@ pub const VERSION: &str = "0.29.7";
 
 /// The default folder where data is saved.
 /// 
-pub const DATA_GENERAL_FOLDER: &str = "/home/Willowcreek/programming/rust/mine/qbnk_data";
+pub const DATA_GENERAL_FOLDER: &str = "/home/jtreagan/programming/mine/qbnk_data";
 /// The default folder for saving Lists.
 /// 
-pub const LIST_DIR: &str = "/home/Willowcreek/programming/rust/mine/qbnk_data/lists";
+pub const LIST_DIR: &str = "/home/jtreagan/programming/mine/qbnk_data/lists";
 /// The default folder for saving Variables.
 /// 
-pub const VARIABLE_DIR: &str = "/home/Willowcreek/programming/rust/mine/qbnk_data/variables";
+pub const VARIABLE_DIR: &str = "/home/jtreagan/programming/mine/qbnk_data/variables";
 /// The default folder for saving Banks.
 /// 
-pub const BANK_DIR: &str = "/home/Willowcreek/programming/rust/mine/qbnk_data/banks";
+pub const BANK_DIR: &str = "/home/jtreagan/programming/mine/qbnk_data/banks";
+
 /// Default height of the question display.
 /// 
 pub const QDISP_HEIGHT: i32 = 150;
-/// Default width of the scrollbar.
+/// Default width of the scrollbar group.
 /// 
 pub const SCROLLBAR_WIDTH: i32 = 15;
 // endregion
@@ -713,18 +714,22 @@ pub mod variable {
     use lib_utils::{input_utilities::*, vec::*};
     use serde::{Deserialize, Serialize};
     use std::{fs::File, io::Write};
+    use fltk::app;
     use fltk::app::channel;
-    use fltk::button::{Button, RadioButton};
+    use fltk::button::{Button, CheckButton, RadioButton, RadioLightButton};
+    use fltk::enums::{Color, FrameType};
+    use fltk::frame::Frame;
     use fltk::group::Group;
-    use fltk::prelude::{ButtonExt, GroupExt, WidgetBase, WidgetExt, WindowExt};
+    use fltk::input::{FloatInput, IntInput};
+    use fltk::prelude::{ButtonExt, GroupExt, InputExt, WidgetBase, WidgetExt, WindowExt};
     use fltk::window::Window;
     use lib_myfltk::fltkutils::fltk_radio_lightbtn_menu;
     // todo: Can you do away with the TypeWrapper enum?  Probably not.
 
     //region Struct Section
 
-    /// The third and innermost layer of the three struct nest QBC is built around.
-    /// 
+    /// The third and innermost layer of the three struct nest 
+    /// that QBC is built around.
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Variable {
         pub var_fname: String,  
@@ -785,6 +790,7 @@ pub mod variable {
                 // Default values all assume that the variable is an i64.
             }
         }
+        
     } // ~~~~~ End VarPrmtrs impl ~~~~~
     //endregion
 
@@ -792,16 +798,240 @@ pub mod variable {
     /// 
     pub fn vrbl_create() {
         let mut var1 = Variable::new();
-        let typelist = vec!["Strings".to_string(), "Character".to_string(), "Integers".to_string(), "Decimals".to_string()];
+
+        vrbl_parameters_input_box(&mut var1);
+        
+        /*
+        let typelist = vec!["Strings".to_string(), "Character".to_string(), 
+                            "Integers".to_string(), "Decimals".to_string()];
         var1.var_type = fltk_radio_lightbtn_menu(&typelist, "Please choose the type of variable:");
         
         vrbl_input_parameters(&mut var1);
         vrbl_input_vardata(&mut var1);
-        vrbl_save(&mut var1);
+        */
         
+        
+        vrbl_save(&mut var1);
     }
 
 
+    /// Input and save a new variable's parameters into the Variable struct.
+    /// 
+    pub fn vrbl_parameters_input_box(var1: &mut Variable) {
+        let mut win = Window::new(900, 100, 600, 400, "Variable Parameters");
+        win.set_color(Color::Cyan);
+        win.make_resizable(true);
+
+        println!("\n W1 -- Now in the vrbl_parameters_input_box() function. \n");
+        
+        // region Create the radio buttons for the variable type.
+        let radio_group = Group::new(0, 0, 600, 50, None);
+
+        // Create horizontal radio light buttons across the top -- initial spacing.
+        let bttn_w = 120;
+        let bttn_h = 30;
+        let spacing = 20;
+        let types_xxx = 40;
+        let types_yyy = 20;
+
+        let mut strings_btn = RadioLightButton::new(types_xxx, types_yyy, bttn_w, bttn_h, "Strings");
+        let chars_btn = RadioLightButton::new(types_xxx + bttn_w + spacing, types_yyy, bttn_w, bttn_h, "Characters");
+        let ints_btn = RadioLightButton::new(types_xxx + 2 * (bttn_w + spacing), types_yyy, bttn_w, bttn_h, "Integers");
+        let decimals_btn = RadioLightButton::new(types_xxx + 3 * (bttn_w + spacing), types_yyy, bttn_w, bttn_h, "Decimals");
+
+        // Set Integers as default selection
+        strings_btn.set_value(true);
+
+        radio_group.end();
+        // endregion
+
+        // region Create "comma" & "list" check boxes in row below the radio buttons.
+
+            // Calculate the position & size of the check boxes.
+        let ckbx_y = types_yyy + bttn_h + 20;  // Position below radio buttons
+        let ckbx_w = 150;
+        let ckbx_h = 25;
+        let ckbx_spacing = 40;
+
+        let total_radio_width = bttn_w * 4 + spacing * 2;  // Width of all radio buttons + spacing
+        let start_x = types_xxx + (total_radio_width - (ckbx_w * 2 + ckbx_spacing)) / 2;
+            
+            // Create the check boxes.
+        let usecommas = CheckButton::new(start_x, ckbx_y, ckbx_w, ckbx_h, "Comma Formatted");
+        let fromlist = CheckButton::new(start_x + ckbx_w + ckbx_spacing, ckbx_y,
+                                        ckbx_w, ckbx_h, "Value to come from a List");
+        
+
+        // endregion
+
+        // region Set up frames -- for Integer & Decimal parameter entry. 
+
+        // region Set up frame parameters
+        let frame_y = ckbx_y + ckbx_h + 20;  // Position below checkboxes
+        let frame_w = 250;
+        let input_w = 100;
+        let input_h = 25;
+        let label_h = 20;
+        let field_spacing = 10;
+        let frame_spacing = 20;
+        let frame_h = 30 + (3 * (label_h + input_h + field_spacing)) + 15;
+        // endregion
+
+        // region Create Integers frame & input fields
+        let mut int_frame = Group::new(types_xxx, frame_y, frame_w, frame_h, None);
+        let mut int_label = Frame::new(types_xxx, frame_y, frame_w, 30, "Integer Parameters");
+        int_label.set_label_size(14);
+
+        // Calculate centered position for input fields in integer frame
+        let int_input_x = types_xxx + (frame_w - input_w) / 2;
+        let int_first_y = frame_y + 35; // Start below the frame label
+
+        // Integer Minimum Value
+        let _intmin_label = Frame::new(int_input_x, int_first_y, input_w, label_h, "Minimum Value");
+        let intmin = IntInput::new(int_input_x, int_first_y + label_h, input_w, input_h, "");
+
+        // Integer Maximum Value
+        let _intmax_label = Frame::new(int_input_x, int_first_y + label_h + input_h + field_spacing,
+                                       input_w, label_h, "Maximum Value");
+        let intmax = IntInput::new(int_input_x, int_first_y + label_h + input_h + field_spacing + label_h,
+                                   input_w, input_h, "");
+
+        int_frame.set_frame(FrameType::DownBox);   // Add frame border
+        int_frame.end();
+        // endregion
+
+        // region Create Decimals frame & input fields
+        let mut decimal_frame = Group::new(types_xxx + frame_w + frame_spacing, frame_y, frame_w, frame_h, None);
+        let mut decimal_label = Frame::new(types_xxx + frame_w + frame_spacing, frame_y, frame_w, 30, "Decimal Parameters");
+        decimal_label.set_label_size(14);
+
+        // Calculate centered position for input fields in decimal frame
+        let dec_input_x = types_xxx + frame_w + frame_spacing + (frame_w - input_w) / 2;
+        let dec_first_y = frame_y + 35; // Start below the frame label
+
+        // Decimal Minimum Value
+        let _decmin_label = Frame::new(dec_input_x, dec_first_y, input_w, label_h, "Minimum Value");
+        let decmin = FloatInput::new(dec_input_x, dec_first_y + label_h, input_w, input_h, "");
+
+        // Decimal Maximum Value
+        let _decmax_label = Frame::new(dec_input_x, dec_first_y + label_h + input_h + field_spacing,
+                                       input_w, label_h, "Maximum Value");
+        let decmax = FloatInput::new(dec_input_x, dec_first_y + label_h + input_h + field_spacing + label_h,
+                                     input_w, input_h, "");
+
+        // Decimal Places
+        let _decplaces_label = Frame::new(dec_input_x, dec_first_y + 2 * (label_h + input_h + field_spacing),
+                                          input_w, label_h, "Decimal Places");
+        let decplaces = IntInput::new(dec_input_x, dec_first_y + 2 * (label_h + input_h + field_spacing) + label_h,
+                                      input_w, input_h, "");
+
+        decimal_frame.set_frame(FrameType::DownBox);   // Add frame border
+        decimal_frame.end();
+        // endregion
+
+        // endregion
+
+        // region Create the Submit button
+        let submit_btn_w = 100;
+        let submit_btn_h = 40;
+
+        // Calculate center position based on the frames
+        let total_frames_width = frame_w * 2 + frame_spacing;
+        let submit_btn_x = types_xxx + (total_frames_width - submit_btn_w) / 2;
+        let submit_btn_y = frame_y + frame_h + 20;  // 20 pixels gap after frames
+
+        let mut submit_btn = Button::new(submit_btn_x, submit_btn_y, submit_btn_w, submit_btn_h, "Submit");
+        // endregion
+
+        win.end();
+        win.show();
+        
+        
+        
+        // region Clone variables for the callback
+        let strings_btn = strings_btn.clone();
+        let chars_btn = chars_btn.clone();
+        let ints_btn = ints_btn.clone();
+        let decimals_btn = decimals_btn.clone();
+        let mut win_clone = win.clone();
+        let mut var1_clone = var1.clone();
+        // endregion
+
+        // region Do the callback for the Submit button
+        
+        submit_btn.set_callback(move |_| {
+
+            // region Deal with the radio buttons.
+            let vrbl_type = if strings_btn.value() {
+                "Strings"
+            } else if chars_btn.value() {
+                "Characters"
+            } else if ints_btn.value() {
+                "Integers"
+            } else if decimals_btn.value() {
+                "Decimals"
+            } else {
+                "None"
+            };
+
+            println!("\n In the callback, selected type == {} \n", vrbl_type);
+            
+            var1_clone.var_type = vrbl_type.to_string();
+            
+            // endregion
+
+            //region Deal with the "comma" & "list" check boxes.
+            if usecommas.is_checked() {
+                var1_clone.params.num_comma_frmttd = true;
+                print!("\n Comma Formatted == true \n");
+            }  else {
+                var1_clone.params.num_comma_frmttd = false;
+                print!("\n Comma Formatted == false \n");
+            }
+
+            if fromlist.is_checked() {
+                var1_clone.params.is_from_list = true;
+                print!("\n List == true \n");
+            }  else {
+                var1_clone.params.is_from_list = false;
+                print!("\nList == false \n");
+            }
+            // endregion
+
+            // region Deal with the Integer input fields.
+            if vrbl_type == "Integers" {
+                var1_clone.params.num_min_int = intmin.value().parse::<i64>().unwrap();
+                var1_clone.params.num_max_int = intmax.value().parse::<i64>().unwrap();
+            }
+            // endregion
+
+            // region Deal with the Decimal input fields.
+            if vrbl_type == "Decimals" {
+                var1_clone.params.num_min_float = decmin.value().parse::<f64>().unwrap();
+                var1_clone.params.num_max_float = decmax.value().parse::<f64>().unwrap();
+                var1_clone.params.num_dcml_places = decplaces.value().parse::<usize>().unwrap();
+            }
+            // endregion
+
+            println!("\n In the callback, var1_clone == {:?} \n", var1_clone);
+       
+            // Close the window
+            win_clone.hide();
+        });
+        // endregion
+
+        // Keep window active until hidden
+        while win.shown() {
+            app::wait();
+        }
+        
+        println!("/n W2 -- At end of params input:  The Variable struct now contains:  {:?} /n", var1);
+
+        //win.end();
+
+    }
+
+/*
     /// Set the parameters for a Variable.
     ///
     pub fn vrbl_input_params_boxes(data: &mut Variable) {  // Set boolean parameters only.  Leave data alone.
@@ -858,7 +1088,7 @@ pub mod variable {
             _ => { unreachable!(); }
         }
     }
-    
+    */
     
 
     /// Set the parameters for a Variable.
