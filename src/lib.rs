@@ -955,12 +955,8 @@ pub mod variable {
         let decimals_btn = decimals_btn.clone();
         let mut win_clone = win.clone();
         
-        //let newvar = Variable::new();
-        //let datavar = Rc::new(RefCell::new(newvar));   
-        //let mut datavar_clone = datavar.clone();
-        
-        let mut var1_clone = var1.clone();
-        
+        let datavar = Rc::new(RefCell::new(Variable::new()));   
+              
         // endregion
 
         // region Do the callback for the Submit button
@@ -968,7 +964,7 @@ pub mod variable {
         submit_btn.set_callback(move |_| {
 
             // region Deal with the radio buttons.
-            let vrbl_type = if strings_btn.value() {
+            let vartype = if strings_btn.value() {
                 "Strings"
             } else if chars_btn.value() {
                 "Characters"
@@ -980,44 +976,48 @@ pub mod variable {
                 "None"
             };
            
-            var1_clone.var_type = vrbl_type.to_string();
+            datavar.borrow_mut().var_type = vartype.to_string();
             
             // endregion
 
             //region Deal with the "comma" & "list" check boxes.
             if usecommas.is_checked() {
-                var1_clone.params.num_comma_frmttd = true;
+                datavar.borrow_mut().params.num_comma_frmttd = true;
                 print!("\n Comma Formatted == true \n");
             }  else {
-                var1_clone.params.num_comma_frmttd = false;
+                datavar.borrow_mut().params.num_comma_frmttd = false;
                 print!("\n Comma Formatted == false \n");
             }
 
             if fromlist.is_checked() {
-                var1_clone.params.is_from_list = true;
+                datavar.borrow_mut().params.is_from_list = true;
                 print!("\n List == true \n");
             }  else {
-                var1_clone.params.is_from_list = false;
+                datavar.borrow_mut().params.is_from_list = false;
                 print!("\nList == false \n");
             }
             // endregion
 
             // region Deal with the Integer input fields.
-            if vrbl_type == "Integers" {
-                var1_clone.params.num_min_int = intmin.value().parse::<i64>().unwrap();
-                var1_clone.params.num_max_int = intmax.value().parse::<i64>().unwrap();
+            if vartype == "Integers" {
+                datavar.borrow_mut().params.is_int = true;
+                datavar.borrow_mut().params.is_float = false;
+                datavar.borrow_mut().params.num_min_int = intmin.value().parse::<i64>().unwrap();
+                datavar.borrow_mut().params.num_max_int = intmax.value().parse::<i64>().unwrap();
             }
             // endregion
 
             // region Deal with the Decimal input fields.
-            if vrbl_type == "Decimals" {
-                var1_clone.params.num_min_float = decmin.value().parse::<f64>().unwrap();
-                var1_clone.params.num_max_float = decmax.value().parse::<f64>().unwrap();
-                var1_clone.params.num_dcml_places = decplaces.value().parse::<usize>().unwrap();
+            if vartype == "Decimals" {
+                datavar.borrow_mut().params.is_int = false;
+                datavar.borrow_mut().params.is_float = true;
+                datavar.borrow_mut().params.num_min_float = decmin.value().parse::<f64>().unwrap();
+                datavar.borrow_mut().params.num_max_float = decmax.value().parse::<f64>().unwrap();
+                datavar.borrow_mut().params.num_dcml_places = decplaces.value().parse::<usize>().unwrap();
             }
             // endregion
 
-            println!("\n In the callback, var1_clone == {:?} \n", var1_clone);
+            println!("\n In the callback, datavar == {:?} \n", datavar);
        
             // Close the window
             win_clone.hide();
