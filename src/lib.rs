@@ -714,6 +714,8 @@ pub mod variable {
     use lib_utils::{input_utilities::*, vec::*};
     use serde::{Deserialize, Serialize};
     use std::{fs::File, io::Write};
+    use std::cell::RefCell;
+    use std::rc::Rc;
     use fltk::app;
     use fltk::app::channel;
     use fltk::button::{Button, CheckButton, RadioButton, RadioLightButton};
@@ -821,9 +823,7 @@ pub mod variable {
         let mut win = Window::new(900, 100, 600, 400, "Variable Parameters");
         win.set_color(Color::Cyan);
         win.make_resizable(true);
-
-        println!("\n W1 -- Now in the vrbl_parameters_input_box() function. \n");
-        
+       
         // region Create the radio buttons for the variable type.
         let radio_group = Group::new(0, 0, 600, 50, None);
 
@@ -954,7 +954,13 @@ pub mod variable {
         let ints_btn = ints_btn.clone();
         let decimals_btn = decimals_btn.clone();
         let mut win_clone = win.clone();
+        
+        //let newvar = Variable::new();
+        //let datavar = Rc::new(RefCell::new(newvar));   
+        //let mut datavar_clone = datavar.clone();
+        
         let mut var1_clone = var1.clone();
+        
         // endregion
 
         // region Do the callback for the Submit button
@@ -973,9 +979,7 @@ pub mod variable {
             } else {
                 "None"
             };
-
-            println!("\n In the callback, selected type == {} \n", vrbl_type);
-            
+           
             var1_clone.var_type = vrbl_type.to_string();
             
             // endregion
@@ -1020,6 +1024,12 @@ pub mod variable {
         });
         // endregion
 
+        
+// Next is to pull the Variable struct out of the callback.  
+//      Try using a refcell.        
+        
+        
+        
         // Keep window active until hidden
         while win.shown() {
             app::wait();
