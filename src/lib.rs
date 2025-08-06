@@ -955,12 +955,13 @@ pub mod variable {
         let decimals_btn = decimals_btn.clone();
         let mut win_clone = win.clone();
         
-        let datavar = Rc::new(RefCell::new(Variable::new()));   
-              
+        let datavar = Rc::new(RefCell::new(Variable::new()));
+        let datavar_outside = datavar.clone();  // Create a second Rc pointing to the same RefCell
+
+
         // endregion
 
         // region Do the callback for the Submit button
-        
         submit_btn.set_callback(move |_| {
 
             // region Deal with the radio buttons.
@@ -977,7 +978,6 @@ pub mod variable {
             };
            
             datavar.borrow_mut().var_type = vartype.to_string();
-            
             // endregion
 
             //region Deal with the "comma" & "list" check boxes.
@@ -1024,16 +1024,12 @@ pub mod variable {
         });
         // endregion
 
-        
-// Next is to pull the Variable struct out of the callback.  
-//      Try using a refcell.        
-        
-        
-        
         // Keep window active until hidden
         while win.shown() {
             app::wait();
         }
+        
+        *var1 = datavar_outside.borrow().clone();
         
         println!("/n W2 -- At end of params input:  The Variable struct now contains:  {:?} /n", var1);
 
@@ -1098,7 +1094,7 @@ pub mod variable {
             _ => { unreachable!(); }
         }
     }
-    */
+    */  // Delete this
     
 
     /// Set the parameters for a Variable.
