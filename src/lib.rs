@@ -7,17 +7,21 @@
         // TODO: Add second line to the title containing the associated textbook text.
         // TODO: Question display should show calculated values for the variables
         //          rather than the variable ID.  Maybe highlight the values so
-        //          that the variable can be easily located.
+        //          that the variable can be easily located.  May also want to set up 
+        //          a hover over the value/variable to show the variable's value/variable name.
+        
+        // TODO: 
 
  */  // TODO's
 
+use fltk::window;
+use fltk::window::Window;
 use crate::banks::Bank;
 use fltk::app::App;
 use fltk::group::Scroll;
-use fltk::prelude::{GroupExt, WidgetExt};
+use fltk::prelude::{GroupExt, WidgetBase, WidgetExt};
 use fltk::text::{TextDisplay, TextEditor};
 use fltk::utils::oncelock::Lazy;
-use fltk::window::Window;
 use std::sync::Mutex;
 
 // region  Global Constants
@@ -30,21 +34,24 @@ pub const DEVELOPMENT_VERSION: &str = "Question Bank Rebuild 4";
 pub const PROGRAM_TITLE: &str = "Question Bank Creator";
 /// The current version..
 /// 
-pub const VERSION: &str = "0.29.7";     
-// Note:  Versioning, while semantic in format, is decimal in nature.
+pub const VERSION: &str = "0.29.8";  // Note:  Versioning, while semantic in format, is decimal in nature.
+
+
+// Note:  The constants below are here during development.  They will be moved to
+//          a config file once the program is more stable.
 
 /// The default folder where data is saved.
 /// 
-pub const DATA_GENERAL_FOLDER: &str = "/home/jtreagan/programming/mine/qbnk_data";
+pub const DATA_GENERAL_FOLDER: &str = "/home/jtreagan/programming/mine/qbnk_rb7/src/qbnk_data";
 /// The default folder for saving Lists.
 /// 
-pub const LIST_DIR: &str = "/home/jtreagan/programming/mine/qbnk_data/lists";
+pub const LIST_DIR: &str = "/home/jtreagan/programming/mine/qbnk_rb7/src/qbnk_data/lists";
 /// The default folder for saving Variables.
 /// 
-pub const VARIABLE_DIR: &str = "/home/jtreagan/programming/mine/qbnk_data/variables";
+pub const VARIABLE_DIR: &str = "/home/jtreagan/programming/mine/qbnk_rb7/src/qbnk_data/variables";
 /// The default folder for saving Banks.
 /// 
-pub const BANK_DIR: &str = "/home/jtreagan/programming/mine/qbnk_data/banks";
+pub const BANK_DIR: &str = "/home/jtreagan/programming/mine/qbnk_rb7/src/qbnk_data/banks";
 
 /// Default height of the question display.
 /// 
@@ -69,7 +76,7 @@ pub static APP_FLTK: Lazy<Mutex<App>> = Lazy::new(|| Mutex::new(App::default()))
 pub static WIDGETS: Lazy<Mutex<Wdgts>> = Lazy::new(|| Mutex::new(Wdgts::new()));
 //endregion
 
-// region structs
+// region Global Structs & Enums
 /// Struct that holds the primary window's widgets.
 ///
 pub struct Wdgts {
@@ -81,7 +88,7 @@ pub struct Wdgts {
 
 impl Wdgts {
     pub fn new() -> Self {
-        let prim_win = Window::default()
+        let prim_win = window::Window::new(1100, 200, 825, 900, PROGRAM_TITLE)
             .with_size(825, 900)
             .with_pos(1100, 200);
         prim_win.end();
@@ -111,7 +118,9 @@ impl Clone for Wdgts {
 /// Holds the TypeWrapper enum.
 ///
 pub mod global {
-    // todo:  Do you really need this?
+    // todo:  Do you really need this?  I don't think you can
+    //          eliminate it, but maybe you can move it to the
+    //          global structs section and eliminate the global module.
 
     use serde::{Deserialize, Serialize};
 
@@ -711,22 +720,17 @@ pub mod variable {
     use crate::global::{TypeWrapper, TypeWrapper::*};
     use crate::{lists::*, math_functions::*, LAST_DIR_USED, VARIABLE_DIR};
     use lib_file::{file_fltk::*, file_mngmnt::*};
-    use lib_utils::{input_utilities::*, vec::*};
+    use lib_utils::vec::*;
     use serde::{Deserialize, Serialize};
     use std::{fs::File, io::Write};
     use std::cell::RefCell;
     use std::rc::Rc;
     use fltk::app;
-    use fltk::app::channel;
-    use fltk::button::{Button, CheckButton, RadioButton, RadioLightButton};
+    use fltk::button::{Button, CheckButton, RadioLightButton};
     use fltk::enums::{Color, FrameType};
-    use fltk::frame::Frame;
-    use fltk::group::Group;
+    use fltk::{frame::Frame, group::Group, window::Window};
     use fltk::input::{FloatInput, IntInput};
     use fltk::prelude::{ButtonExt, GroupExt, InputExt, WidgetBase, WidgetExt, WindowExt};
-    use fltk::window::Window;
-    use lib_myfltk::fltkutils::fltk_radio_lightbtn_menu;
-    // todo: Can you do away with the TypeWrapper enum?  Probably not.
 
     //region Struct Section
 
@@ -799,27 +803,26 @@ pub mod variable {
     /// Create a new variable.
     /// 
     pub fn vrbl_create() {
+        
+        //todo: Instead of passing a reference to the variable struct,
+        //          have the parameters box return the variable struct.
+        
         let mut var1 = Variable::new();
 
         vrbl_parameters_input_box(&mut var1);
-        
-        /*
-        let typelist = vec!["Strings".to_string(), "Character".to_string(), 
-                            "Integers".to_string(), "Decimals".to_string()];
-        var1.var_type = fltk_radio_lightbtn_menu(&typelist, "Please choose the type of variable:");
-        
-        vrbl_input_parameters(&mut var1);
-        vrbl_input_vardata(&mut var1);
-        */
-        
-        
+
+        println!("\n W3 -- Back in vrbl_create():  The Variable struct now contains:  {:?} \n", var1);
+                
         vrbl_save(&mut var1);
     }
-
 
     /// Input and save a new variable's parameters into the Variable struct.
     /// 
     pub fn vrbl_parameters_input_box(var1: &mut Variable) {
+        
+        // todo: Grey out the input fields when the variable type is not "int" or "float".
+        //          Use the `deactivate()` method.  First attempt didn't work.
+        
         let mut win = Window::new(900, 100, 600, 400, "Variable Parameters");
         win.set_color(Color::Cyan);
         win.make_resizable(true);
@@ -851,7 +854,7 @@ pub mod variable {
         let ckbx_y = types_yyy + bttn_h + 20;  // Position below radio buttons
         let ckbx_w = 150;
         let ckbx_h = 25;
-        let ckbx_spacing = 40;
+        let ckbx_spacing = 55;
 
         let total_radio_width = bttn_w * 4 + spacing * 2;  // Width of all radio buttons + spacing
         let start_x = types_xxx + (total_radio_width - (ckbx_w * 2 + ckbx_spacing)) / 2;
@@ -888,12 +891,12 @@ pub mod variable {
 
         // Integer Minimum Value
         let _intmin_label = Frame::new(int_input_x, int_first_y, input_w, label_h, "Minimum Value");
-        let intmin = IntInput::new(int_input_x, int_first_y + label_h, input_w, input_h, "");
+        let mut intmin = IntInput::new(int_input_x, int_first_y + label_h, input_w, input_h, "");
 
         // Integer Maximum Value
         let _intmax_label = Frame::new(int_input_x, int_first_y + label_h + input_h + field_spacing,
                                        input_w, label_h, "Maximum Value");
-        let intmax = IntInput::new(int_input_x, int_first_y + label_h + input_h + field_spacing + label_h,
+        let mut intmax = IntInput::new(int_input_x, int_first_y + label_h + input_h + field_spacing + label_h,
                                    input_w, input_h, "");
 
         int_frame.set_frame(FrameType::DownBox);   // Add frame border
@@ -911,18 +914,18 @@ pub mod variable {
 
         // Decimal Minimum Value
         let _decmin_label = Frame::new(dec_input_x, dec_first_y, input_w, label_h, "Minimum Value");
-        let decmin = FloatInput::new(dec_input_x, dec_first_y + label_h, input_w, input_h, "");
+        let mut decmin = FloatInput::new(dec_input_x, dec_first_y + label_h, input_w, input_h, "");
 
         // Decimal Maximum Value
         let _decmax_label = Frame::new(dec_input_x, dec_first_y + label_h + input_h + field_spacing,
                                        input_w, label_h, "Maximum Value");
-        let decmax = FloatInput::new(dec_input_x, dec_first_y + label_h + input_h + field_spacing + label_h,
+        let mut decmax = FloatInput::new(dec_input_x, dec_first_y + label_h + input_h + field_spacing + label_h,
                                      input_w, input_h, "");
 
         // Decimal Places
         let _decplaces_label = Frame::new(dec_input_x, dec_first_y + 2 * (label_h + input_h + field_spacing),
                                           input_w, label_h, "Decimal Places");
-        let decplaces = IntInput::new(dec_input_x, dec_first_y + 2 * (label_h + input_h + field_spacing) + label_h,
+        let mut decplaces = IntInput::new(dec_input_x, dec_first_y + 2 * (label_h + input_h + field_spacing) + label_h,
                                       input_w, input_h, "");
 
         decimal_frame.set_frame(FrameType::DownBox);   // Add frame border
@@ -945,9 +948,7 @@ pub mod variable {
 
         win.end();
         win.show();
-        
-        
-        
+               
         // region Clone variables for the callback
         let strings_btn = strings_btn.clone();
         let chars_btn = chars_btn.clone();
@@ -966,12 +967,27 @@ pub mod variable {
 
             // region Deal with the radio buttons.
             let vartype = if strings_btn.value() {
+                decmin.deactivate();
+                decmax.deactivate();
+                decplaces.deactivate();
+                intmin.deactivate();
+                intmax.deactivate();
                 "Strings"
             } else if chars_btn.value() {
+                decmin.deactivate();
+                decmax.deactivate();
+                decplaces.deactivate();
+                intmin.deactivate();
+                intmax.deactivate();
                 "Characters"
             } else if ints_btn.value() {
+                decmin.deactivate();
+                decmax.deactivate();
+                decplaces.deactivate();
                 "Integers"
             } else if decimals_btn.value() {
+                intmin.deactivate();
+                intmax.deactivate();
                 "Decimals"
             } else {
                 "None"
@@ -1030,73 +1046,10 @@ pub mod variable {
         }
         
         *var1 = datavar_outside.borrow().clone();
-        
-        println!("/n W2 -- At end of params input:  The Variable struct now contains:  {:?} /n", var1);
-
-        //win.end();
-
     }
 
-/*
-    /// Set the parameters for a Variable.
-    ///
-    pub fn vrbl_input_params_boxes(data: &mut Variable) {  // Set boolean parameters only.  Leave data alone.
-
-        // For Integers and Decimals, you will need to include input fields.
-        //
-        // For Floats, could you do a radiobox for the decimal places?
-        //      How many decimal places do you need to include for a 
-        //      science teacher concerned about significant digits?
-        //      May need to go back to an input field for the decimal places.
-        
-        
-        
-        
-
-        match data.var_type.as_str() {
-            "Strings" => {  // Note that Strings should only come from a list.
-                data.params.is_string = true;
-                data.params.is_int = false;
-                data.params.is_from_list = true;
-            }
-
-            "Character" => {  // Note that characters also can only come from a list.
-                data.params.is_char = true;
-                data.params.is_int = false;
-                data.params.is_from_list = true;
-            }
-
-            "Integers" => {
-                data.params.num_comma_frmttd = input_bool_prompt("\n Is the value to be comma formatted?   ");
-                let mini_choice = input_bool_prompt("\n Is the variable contents to come from a list?   ");
-                if mini_choice {
-                    data.params.is_from_list = true;
-                    return;
-                }
-                data.params.num_min_int = input_num_prompt("\n Please enter the minimum int value:  ");
-                data.params.num_max_int = input_num_prompt("\n Please enter the maximum int value:  ");
-            }
-
-            "Decimals" => {
-                data.params.is_int = false;
-                data.params.num_dcml_places = input_num_prompt("\n How many decimal places are allowed?  ");
-                data.params.num_comma_frmttd = input_bool_prompt("\n Is the value to be comma formatted?   ");
-
-                let mini_choice = input_bool_prompt("\n Is the variable contents to come from a list?   ");
-                if mini_choice {
-                    data.params.is_from_list = true;
-                    return;
-                }
-                data.params.num_min_float = input_num_prompt("\n Please enter the minimum float value:  ");
-                data.params.num_max_float = input_num_prompt("\n Please enter the maximum float value:  ");
-            }
-
-            _ => { unreachable!(); }
-        }
-    }
-    */  // Delete this
     
-
+/*
     /// Set the parameters for a Variable.
     /// 
     pub fn vrbl_input_parameters(data: &mut Variable) {  // Set boolean parameters only.  Leave data alone.
@@ -1153,6 +1106,9 @@ pub mod variable {
         data.var_fname = input_string_prompt("\n Please enter a title/filename for your new variable:  ");
         vrbl_setvalues(data);
     }
+    */   // I think these can now be deleted.
+    
+    
 
     /// Prepare a Variable for saving.
     /// 
@@ -1210,6 +1166,8 @@ pub mod variable {
             }
         }
     }
+
+
 
     /// Sets and calculates the values of non-boolean fields in the Variable struct.
     /// 
@@ -1294,6 +1252,7 @@ pub mod variable {
         }
     }
 
+
     /// Recalculates the values in the non-boolean fields of a Variable struct.
     /// 
     pub fn vrbl_recalc() {
@@ -1308,17 +1267,6 @@ pub mod variable {
 
     }
 
-    /*
-pub fn vrbl_read_nogetpath(usepath: &Rc<RefCell<String>>) -> Variable {
-    // Should return an option or result rather than  `unwrap()`.
-
-    let data = util_read_file_to_string(&usepath);
-    let newvrbl = serde_json::from_str(&data).unwrap();
-
-    newvrbl
-}
-
- */   // vrbl_read_nogetpath()    delete later.
 
 
 } // End   variable   module
