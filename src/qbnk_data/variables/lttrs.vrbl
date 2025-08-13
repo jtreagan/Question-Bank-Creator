@@ -1,0 +1,1 @@
+{"var_fname":"lttrs.vrbl","params":{"is_string":false,"is_char":true,"is_from_list":true,"is_int":false,"num_min_int":0,"num_max_int":0,"num_min_float":0.0,"num_max_float":0.0,"num_dcml_places":0,"num_comma_frmttd":false},"list_fname":"/home/camascounty/programming/rust/mine/qbnk_data/lists/alphabet.lst","content":{"Letter":"u"},"var_type":"chars"}
