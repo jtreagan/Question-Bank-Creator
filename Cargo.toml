@@ -3,7 +3,7 @@
 name = "rebuild7"
 version = "0.29.8"
 authors = ["John T. Reagan"]
-license = "GNU version 3"
+license = "GPL-3.0-or-later"
 readme = "README.md"
 edition = "2021"
 repository = "https://github.com/jtreagan/Question-Bank-Creator/tree/master"
