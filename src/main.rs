@@ -43,7 +43,7 @@
 
     //TODO: Provide for re-ordering/moving questions in a bank.
 
- */  // Thoughts & Ideas
+*/  // Thoughts & Ideas
 
 use fltk::{app::*, prelude::*, prelude::WidgetExt};
 use rebuild7::{menus::*, misc::*};

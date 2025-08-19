@@ -10,7 +10,11 @@
         //          that the variable can be easily located.  May also want to set up 
         //          a hover over the value/variable to show the variable's value/variable name.
         
-        // TODO: 
+        // TODO: Refine the implementation of how you use LastDirUsed.  It is currently
+        //          inconsistent in how it is applied.  Check every instance where a
+        //          file is read or written -- primarily in the *_read() and *_save()
+        //          functions.  Also, check the three utility crates.  The 
+        //          file_browse_save_fltr() function will need attention.   
 
  */  // TODO's
 
@@ -113,7 +117,7 @@ impl Clone for Wdgts {
     }
 }
 
-// endregion
+// endregioncar
 
 /// Holds the TypeWrapper enum.
 ///
