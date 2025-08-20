@@ -46,9 +46,9 @@
 */  // Thoughts & Ideas
 
 use fltk::{app::*, prelude::*, prelude::WidgetExt};
-use rebuild7::{menus::*, misc::*};
-use rebuild7::{APP_FLTK, WIDGETS};
-use rebuild7::{Wdgts};
+use question_bank_creator::{menus::*, misc::*};
+use question_bank_creator::{APP_FLTK, WIDGETS};
+use question_bank_creator::{Wdgts};
 
 fn main() {
     let app = App::default();
