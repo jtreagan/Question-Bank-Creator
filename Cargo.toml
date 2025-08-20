@@ -1,11 +1,13 @@
 [package]
 name = "question_bank_creator"
-#name = "rebuild7"   // This is the name of the working directory
-version = "0.29.8"
+version = "0.29.9"
 authors = ["John T. Reagan"]
 license = "GPL-3.0-or-later"
 readme = "README.md"
 edition = "2021"
+
+documentation = "https://docs.rs/question_bank_creator"
+
 repository = "https://github.com/jtreagan/Question-Bank-Creator/tree/master"
 
 description = "This program is targeted at teachers & homeschool parents and is especially useful for teaching math.  It allows the construction of test/worksheet/quiz questions that contain dynamic content.  The teacher can create variables that generate values/strings using random or pseudo-random criteria set by the user.  Once constructed, the question is stored in a file (or 'question bank') for later access as needed.  Teachers can also make the program/questions available to students for student directed practice."
