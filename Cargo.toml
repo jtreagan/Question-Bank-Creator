@@ -1,6 +1,6 @@
 [package]
-#name = "question_bank_creator"
-name = "rebuild7"
+name = "question_bank_creator"
+#name = "rebuild7"   // This is the name of the working directory
 version = "0.29.8"
 authors = ["John T. Reagan"]
 license = "GPL-3.0-or-later"
