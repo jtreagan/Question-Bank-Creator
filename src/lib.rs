@@ -167,6 +167,12 @@ pub mod banks {
         pub question_vec: Vec<Question>,
     }
 
+    impl Default for Bank {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
     impl Bank {
         /// Initialize a new question Bank.
         pub fn new() -> Bank {
@@ -485,7 +491,7 @@ pub mod questions {
         let app;
         let mut usebank;
         {
-            app = APP_FLTK.lock().unwrap().clone();
+            app = *APP_FLTK.lock().unwrap();
             usebank = CURRENT_BANK.lock().unwrap().clone();
         } // Access global variables.
 
@@ -789,6 +795,12 @@ pub mod variable {
         pub num_max_float: f64,
         pub num_dcml_places: usize,
         pub num_comma_frmttd: bool,
+    }
+
+    impl Default for VarPrmtrs {
+        fn default() -> Self {
+            Self::new()
+        }
     }
 
     impl VarPrmtrs {
@@ -1239,8 +1251,8 @@ pub mod variable {
 
         match file_read_to_string(&usepath) {
             Ok(contents) => {
-                let newvariable = serde_json::from_str(&contents).unwrap();
-                newvariable
+                
+                serde_json::from_str(&contents).unwrap()
             }
             Err(err) => {
                 eprintln!("\n Error reading the file: {} \n", err);
@@ -1321,19 +1333,17 @@ pub mod variable {
 
                 _ => {}
             }
+        } else if var1.params.is_int {
+            // Numeric values will always be randomly generated.
+            let numint: i64 =
+                math_gen_random_num(var1.params.num_min_int, var1.params.num_max_int);
+            var1.content = Integer(numint);
         } else {
-            if var1.params.is_int {
-                // Numeric values will always be randomly generated.
-                let numint: i64 =
-                    math_gen_random_num(var1.params.num_min_int, var1.params.num_max_int);
-                var1.content = Integer(numint);
-            } else {
-                // The content is a float.
-                let mut numfloat: f64 =
-                    math_gen_random_num(var1.params.num_min_float, var1.params.num_max_float);
-                numfloat = math_round_to_place_f64(&numfloat, var1.params.num_dcml_places);
-                var1.content = Floating(numfloat);
-            }
+            // The content is a float.
+            let mut numfloat: f64 =
+                math_gen_random_num(var1.params.num_min_float, var1.params.num_max_float);
+            numfloat = math_round_to_place_f64(&numfloat, var1.params.num_dcml_places);
+            var1.content = Floating(numfloat);
         }
     }
 
@@ -1372,6 +1382,12 @@ pub mod lists {
         pub intsigned: Vec<i64>,
         pub decimals: Vec<f64>,
         pub typechoice: String, // "Strings", "chars", "ints", "floats"
+    }
+
+    impl Default for List {
+        fn default() -> Self {
+            Self::new()
+        }
     }
 
     impl List {
@@ -1807,8 +1823,8 @@ pub mod math_functions {
     ///
     pub fn math_round_to_place_f64(num: &f64, place: usize) -> f64 {
         let factor = pow(10, place);
-        let rounded = (num * factor as f64).round() / factor as f64;
-        rounded
+        
+        (num * factor as f64).round() / factor as f64
     }
 
     /// Generate and return a random number between the given min and max.
@@ -1844,8 +1860,8 @@ pub mod misc {
     ///
     pub fn get_text_from_editor(editor: &TextEditor) -> String {
         if let Some(buffer) = editor.buffer() {
-            let text = buffer.text(); // Retrieve the text from the associated buffer
-            text
+             // Retrieve the text from the associated buffer
+            buffer.text()
         } else {
             String::new() // If no buffer is set, return an empty string
         }
