@@ -1,4 +1,3 @@
-
 //! # Question Bank Creator
 //! This program is targeted at teachers & homeschool parents and is
 //! especially useful for teaching math and science,
@@ -24,7 +23,6 @@
 //!    * COPYRIGHT = "Copyright (c) 2025, John T. Reagan";
 //!    * REPOSITORY = "<https://github.com/jtreagan/Question-Bank-Creator>";    
 
-
 /*                        Thoughts & Ideas
 
     -- It does make sense to save the variables as files so that
@@ -43,18 +41,19 @@
 
     //TODO: Provide for re-ordering/moving questions in a bank.
 
-*/  // Thoughts & Ideas
+*/
+// Thoughts & Ideas
 
-use fltk::{app::*, prelude::*, prelude::WidgetExt};
+use fltk::{app::*, prelude::WidgetExt, prelude::*};
+use question_bank_creator::Wdgts;
 use question_bank_creator::{menus::*, misc::*};
 use question_bank_creator::{APP_FLTK, WIDGETS};
-use question_bank_creator::{Wdgts};
 
 fn main() {
     let app = App::default();
     {
-        *APP_FLTK.lock().unwrap() = app.clone();  
-    }  // Store the app in the global variable.
+        *APP_FLTK.lock().unwrap() = app;
+    } // Store the app in the global variable.
 
     set_font_size(20);
     let mut wdgts = Wdgts::new();
@@ -64,10 +63,9 @@ fn main() {
 
     {
         *WIDGETS.lock().unwrap() = wdgts.clone();
-    }  // Store wdgts in the global variable.
+    } // Store wdgts in the global variable.
 
     wdgts.prim_win.show();
 
     app.run().unwrap();
 }
-
