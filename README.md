@@ -80,6 +80,14 @@ Lists are also user created and the user will create any needed list before ente
 
 Both `Variables` and `Lists` are saved in separate files in storage.  This allows the user to reuse them in future questions without needing to "re-invent the wheel" every time a new question is created.
 
+## More about how Question Bank Creator works
+
+The goal of QBC is to make teaching (math, science, and even other topics) easier for both the teacher and the student. The key is how the program uses the Variable struct to make the questions dynamic. (Note that I’m assuming that you've read the example above.) Each Variable is teacher-created, tailored to the topics the student is studying, and, once created, is saved in a file to facilitate re-usability. The content field, `pub content: TypeWrapper`, of the Variable struct is the dynamic part. The value contained in that field always has a random side to it. If the Variable is a String or Character, it will always be randomly chosen from a list that is also user-created. If it is numeric, then it will either be randomly calculated within user-specified limits (limits contained in the Variable struct) or, like Strings and Characters, randomly chosen from a user-created list. Thus, as in the example above, every word, number, or character of the question can be generated as a Variable, thus giving the teacher and student an infinite variety of problems to practice/test on.
+
+So, the Variable struct is what makes it all work. The Question struct contains the actual text of the problem with the user-designated Variables inserted inline. When a teacher is creating a Question and inserts a Variable into the text, that Variable is then pushed onto the `pub var_vec: Vec<Variable>` vector of the Question struct. When the need arises to recalculate the values of a Question's Variables, each variable in the vector will be accessed, the content field modified (randomly as mentioned above) and then re-saved. (Just so you know, at the time of this writing the 'recalculation' feature hasn't yet been implemented.)
+
+Questions, of course, will tend to be similarly themed, even if only by the exercise set or chapter of whatever particular textbook is being used. Those similar questions are gathered into Banks. The Bank struct contains the `pub question_vec: Vec<Question>` field. When a Question is finished, it is pushed onto that vector and then saved when the Bank is saved.
+
 ## Dependencies
 
 Note that this app is not yet usable.  The project is currently being developed in the Rust language using the Linux operating system.  It uses the following crates found in the Rust language's crates.io:
