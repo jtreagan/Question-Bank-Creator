@@ -1,3 +1,30 @@
+
+//! # Question Bank Creator
+//! This program is targeted at teachers & homeschool parents and is
+//! especially useful for teaching math and science,
+//! although it also can be useful as an aide in the teaching of
+//! other disciplines.
+//! Curriculum developers will especially find it useful.  It allows
+//! the construction of test/worksheet/quiz/individual practice questions
+//! that contain dynamic content.  It then saves those questions -- using
+//! serde.json -- in user-defined ‘question banks’,
+//! thus keeping related questions together in the same file.
+//! A parent or teacher can create variables that generate dynamic values
+//! (either numeric, character, or string) using random or pseudo-random
+//! criteria set by the user.  Once constructed, the question is stored
+//! in a file (or 'question bank') for later access as needed.
+//! Parents or teachers can also make the app/questions available to
+//! students for student-directed practice.
+//!
+//!
+//!    * VERSION = "0.29.7";
+//!    * AUTHOR = "John T. Reagan";
+//!    * LICENSE = "GNU Version 3";
+//!    * LICENSE_URL = "<https://opensource.org/license/agpl-v3>";
+//!    * COPYRIGHT = "Copyright (c) 2025, John T. Reagan";
+//!    * REPOSITORY = "<https://github.com/jtreagan/Question-Bank-Creator>";
+
+
 /*
        // TODO: Font Libre Baskerville, 14 pt.  -- next iteration.
        // TODO: All this needs to be user modifiable. -- next iteration.
