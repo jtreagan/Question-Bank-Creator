@@ -26,7 +26,7 @@ fltk = { version = "^1.5.5", features = ["fltk-bundled"] }
 lib_myfltk = "0.1.4"
 #lib_myfltk = {path = "/home/jtreagan/programming/mine/lib_myfltk"}
 lib_utils = "0.1.3"
-lib_file = "0.1.2"
+lib_file = "0.1.4"
 
 
 

@@ -355,8 +355,10 @@ pub mod banks {
             lastdir = LAST_DIR_USED.lock().unwrap().clone();
         }
 
+        // todo: Do input boxes to get the directory and file name.
+
         println!("Please choose a directory and file name for saving. \n");
-        let usepath = file_browse_save_fltr(&lastdir, "*.bnk");
+        let usepath = file_browse_tosave(&lastdir,"", "*.bnk");
 
         {
             *LAST_DIR_USED.lock().unwrap() = usepath.clone();
@@ -637,11 +639,7 @@ pub mod questions {
 
     /// Menu bar for the `qst_editor`.
     ///
-    pub fn qst_editor_menubar(
-        edtr: &TextEditor,
-        edtrwin: &mut window::Window,
-        buf: &mut TextBuffer,
-    ) -> menu::MenuBar {
+    pub fn qst_editor_menubar(edtr: &TextEditor, edtrwin: &mut window::Window, buf: &mut TextBuffer) -> menu::MenuBar {
         let mut menubar = menu::MenuBar::new(0, 0, edtrwin.width(), 40, "");
 
         // region  "Finished" menu item
@@ -681,12 +679,12 @@ pub mod questions {
     pub fn qst_make_var_replace_text() -> String {
         // todo: Allow for user to input a more readable variable name
         //          than the name of the variable file name on disk.
+        // todo: Change the display of the variable name to be more readable without using
+        //          flags.
 
         let usedir = VARIABLE_DIR.to_string();
 
-        println!("Please choose the variable you want to insert. \n");
-
-        let path = file_pathonly(&usedir);
+        let path = file_pathonly(&usedir, "Choose the variable you want to insert.");
         {
             LAST_DIR_USED.lock().unwrap().clone_from(&path); // Refresh LAST_DIR_USED
         }
@@ -1241,7 +1239,7 @@ pub mod variable {
             } // If no path loaded, use default.
         } // Access the global variable.
         let lastdir = LAST_DIR_USED.lock().unwrap().clone();
-        let usepath = file_browse_save_fltr(&lastdir, "Variable Files   \t*.vrbl\nText Files   \t*.txt\nList Files    \t*.lst\nAll Files    \t*.*");
+        let usepath = file_browse_tosave(&lastdir, "", "Variable Files   \t*.vrbl\nText Files   \t*.txt\nList Files    \t*.lst\nAll Files    \t*.*");
 
         {
             *LAST_DIR_USED.lock().unwrap() = usepath.clone();
@@ -1392,7 +1390,7 @@ pub mod variable {
 ///
 pub mod lists {
     use crate::{APP_FLTK, LAST_DIR_USED, VARIABLE_DIR};
-    use lib_file::file_fltk::{file_browse_save_fltr, file_fullpath_fltr};
+    use lib_file::file_fltk::{file_browse_tosave, file_fullpath_fltr};
     use lib_file::file_mngmnt::file_read_to_string;
     use lib_myfltk::input_fltk::*;
     use serde::{Deserialize, Serialize};
@@ -1536,8 +1534,8 @@ pub mod lists {
     pub fn list_save(list: &List) -> String {
         let startdir = LAST_DIR_USED.lock().unwrap().clone(); // Access the last used directory.
 
-        let path = file_browse_save_fltr(
-            &startdir,
+        let path = file_browse_tosave(
+            &startdir, "",
             "List Files    \t*.lst\nVariable Files   \t*.vrbl\nText Files   \t*.txt\nAll Files",
         );
         *LAST_DIR_USED.lock().unwrap() = path.clone(); // Store the current path in global.
