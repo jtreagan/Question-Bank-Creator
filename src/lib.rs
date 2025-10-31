@@ -343,7 +343,7 @@ pub mod banks {
     pub fn bnk_save() {
         // region TODO's
         // TODO: Find way to insert bank title into the save-file dialog.
-        // TODO: Find way to append correct extension automatically.
+
         // endregion
 
         if LAST_DIR_USED.lock().unwrap().clone() == "" {
@@ -355,10 +355,13 @@ pub mod banks {
             lastdir = LAST_DIR_USED.lock().unwrap().clone();
         }
 
-        // todo: Do input boxes to get the directory and file name.
+        let usebank: Bank;
+        {
+            usebank = CURRENT_BANK.lock().unwrap().clone();
+        } // Access global structs.
 
-        println!("Please choose a directory and file name for saving. \n");
-        let usepath = file_browse_tosave(&lastdir,"", "*.bnk");
+        let usename = usebank.bank_title.clone();
+        let usepath = file_browse_tosave(&lastdir, usename.as_str(), "*.bnk");
 
         {
             *LAST_DIR_USED.lock().unwrap() = usepath.clone();
@@ -1239,7 +1242,8 @@ pub mod variable {
             } // If no path loaded, use default.
         } // Access the global variable.
         let lastdir = LAST_DIR_USED.lock().unwrap().clone();
-        let usepath = file_browse_tosave(&lastdir, "", "Variable Files   \t*.vrbl\nText Files   \t*.txt\nList Files    \t*.lst\nAll Files    \t*.*");
+        let usepath = file_browse_tosave(&lastdir, "",
+          "Variable Files   \t*.vrbl\nText Files   \t*.txt\nList Files    \t*.lst\nAll Files    \t*.*");
 
         {
             *LAST_DIR_USED.lock().unwrap() = usepath.clone();
@@ -1248,7 +1252,7 @@ pub mod variable {
         var1.var_fname = file_path_to_fname(&usepath);
         vrbl_save_as_json(var1, &usepath);
 
-        println!("\n The variable has been saved.");
+        //println!("\n The variable has been saved.");
     }
 
     /// Save a Variable in json format.
