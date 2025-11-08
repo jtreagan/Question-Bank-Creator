@@ -300,6 +300,9 @@ pub mod banks {
         //endregion
 
         // region Read the chosen file.
+
+        println!("\n W1 usepath == {} \n", usepath);
+
         let usebank: Bank;
         match file_read_to_string(&usepath) {
             Ok(contents) => {
@@ -315,9 +318,11 @@ pub mod banks {
         }
         // endregion
 
+        // region Pass the new bank into CURRENT_BANK
         {
             *CURRENT_BANK.lock().unwrap() = usebank.clone();
-        } // Pass the new bank into CURRENT_BANK
+        }
+        // endregion
     }
 
     /// Refreshes the contents of the title box of a bank's display.
@@ -341,14 +346,11 @@ pub mod banks {
     /// Prepares a Bank struct for saving.
     ///
     pub fn bnk_save() {
-        // region TODO's
-        // TODO: Find way to insert bank title into the save-file dialog.
 
-        // endregion
-
+        // region Set up directories.
         if LAST_DIR_USED.lock().unwrap().clone() == "" {
             *LAST_DIR_USED.lock().unwrap() = BANK_DIR.to_string().clone();
-        } // If no bank loaded, use default.
+        } // If there is no recently used directory, use default.
 
         let lastdir: String;
         {
@@ -358,16 +360,19 @@ pub mod banks {
         let usebank: Bank;
         {
             usebank = CURRENT_BANK.lock().unwrap().clone();
-        } // Access global structs.
+        }
+        // endregion
 
+        // region Save the bank.
         let usename = usebank.bank_title.clone();
         let usepath = file_browse_tosave(&lastdir, usename.as_str(), "*.bnk");
 
         {
             *LAST_DIR_USED.lock().unwrap() = usepath.clone();
-        } // Set the last used directory.
+        } // Reset the last used directory value.
 
         bnk_save_as_json(&usepath);
+        // endregion
     }
 
     /// Saves a Bank struct to a file in json format.
@@ -403,26 +408,7 @@ pub mod banks {
         //      in each question.
         // }
     }
-
-    /*
-        pub fn test_globalbank_access() {
-            let testbank = CURRENT_BANK.lock().unwrap().clone();
-            println!("\n The test bank is: \n {:?} \n", testbank);
-        }
-
-
-        pub fn temp_listwindows(app: &App) {
-
-        // Retrieve all open child windows
-        let windows = app::windows();
-        println!("\n Currently Open Child Windows: \n");
-
-        for item in windows.iter() {
-            let winlabel = item.label();
-            println!("\n Window: {} \n", winlabel);
-        }
-    }
-    */ // delete later
+    
 } // End    bank    module
 
 /// Functions that deal with the Question struct.
@@ -1393,7 +1379,7 @@ pub mod variable {
 /// Functions for creating and manipulating lists.
 ///
 pub mod lists {
-    use crate::{APP_FLTK, LAST_DIR_USED, VARIABLE_DIR};
+    use crate::{APP_FLTK, LAST_DIR_USED, LIST_DIR, VARIABLE_DIR};
     use lib_file::file_fltk::{file_browse_tosave, file_fullpath_fltr};
     use lib_file::file_mngmnt::file_read_to_string;
     use lib_myfltk::input_fltk::*;
@@ -1536,15 +1522,43 @@ pub mod lists {
     /// Prepare a list for saving to a file.
     ///
     pub fn list_save(list: &List) -> String {
-        let startdir = LAST_DIR_USED.lock().unwrap().clone(); // Access the last used directory.
 
-        let path = file_browse_tosave(
-            &startdir, "",
+        println!("\n WL1 First waypoint in list_save(). \n");
+
+        // region Set up directories.
+
+        let mut usedir = String::new();
+        {
+            if LAST_DIR_USED.lock().unwrap().clone() == "" {
+                *LAST_DIR_USED.lock().unwrap() = LIST_DIR.to_string().clone();
+            } // If there is no recently used directory, use default.
+
+            println!("\n WL2 Second waypoint in list_save(). \n");
+
+            usedir = LAST_DIR_USED.lock().unwrap().clone();
+
+            println!("\n WL3 Third waypoint in list_save(). \n");
+        }
+        // endregion
+
+        //region Call the file browser to get the proper path.
+
+        println!("\n WL4 Fourth waypoint in list_save(). \n");
+
+        let path = file_browse_tosave(&usedir, "",
             "List Files    \t*.lst\nVariable Files   \t*.vrbl\nText Files   \t*.txt\nAll Files",
         );
-        *LAST_DIR_USED.lock().unwrap() = path.clone(); // Store the current path in global.
 
-        list_save_as_json(list, &path);
+        println!("\n WL5 Fifth waypoint in list_save(). \n");
+
+        {
+            *LAST_DIR_USED.lock().unwrap() = path.clone(); // Store the current path in global.
+        }
+        // endregion
+
+        println!("\n WL6 Sixth waypoint in list_save(). \n");
+
+        list_save_as_json(list, path.as_str());
 
         path
     }

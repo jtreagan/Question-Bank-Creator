@@ -1,1 +1,0 @@
-{"var_fname":"presidents","params":{"is_string":true,"is_char":false,"is_from_list":true,"is_int":false,"num_min_int":0,"num_max_int":0,"num_min_float":0.0,"num_max_float":0.0,"num_dcml_places":0,"num_comma_frmttd":false},"list_fname":"/home/jtreagan/programming/rust/mine/qbnk_data/lists/presidents.lst","content":{"Alphanum":"Ronald Reagan"},"var_type":"Strings"}
