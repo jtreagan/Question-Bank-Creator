@@ -172,15 +172,15 @@ pub mod global {
 /// Functions that deal with the Bank struct.
 ///
 pub mod banks {
-    use crate::misc::{make_question_boxes, make_scrollgroup, make_title_txtedtr};
+    use crate::misc::{dir_is_empty, make_question_boxes, make_scrollgroup, make_title_txtedtr};
     use crate::{questions::*, Wdgts, APP_FLTK, BANK_DIR, CURRENT_BANK, LAST_DIR_USED, WIDGETS};
     use fltk::prelude::{DisplayExt, GroupExt, WidgetExt};
     use fltk::text::TextBuffer;
-    use lib_file::{file_fltk::*, file_mngmnt::file_read_to_string};
+    use lib_file::{file_fltk::*, file_mngmnt::file_read_to_string, dir_mngmnt::dir_normalize_path};
     use lib_myfltk::input_fltk::*;
     use serde::{Deserialize, Serialize};
     use std::{fs::File, io::Write};
-
+    use fltk::dialog::{choice2, choice2_default, message, message_default, message_title};
     //region Struct Section
 
     /// The outermost of the three structs QBC is built around.
@@ -223,6 +223,41 @@ pub mod banks {
     }
 
     //endregion
+
+
+    /// Checks if a bank is currently loaded.
+    ///
+    /// This function determines whether a bank is loaded in memory by checking
+    /// the `CURRENT_BANK` global variable. If the `bank_title` of the current bank
+    /// is anything other than "No Bank Loaded", the function returns `true`, indicating
+    /// that a bank is loaded. Otherwise, it returns `false`.
+    ///
+    /// # Returns
+    ///
+    /// * `true` - if a bank is loaded.
+    /// * `false` - if no bank is currently loaded.
+    ///
+    /// # Example
+    /// main() {
+    ///     if bnk_check_loaded() {
+    ///         println!("A bank is loaded in memory.");
+    ///     } else {
+    ///         println!("No bank is loaded.");
+    ///     }
+    /// }
+    /// # Note
+    ///
+    /// This function involves locking the `CURRENT_BANK` mutex for thread-safe access.
+    /// Ensure that this does not lead to any potential deadlocks in your program.
+    pub fn bnk_loaded() -> bool {
+        let mut inmem = false;
+        {
+            if CURRENT_BANK.lock().unwrap().clone().bank_title != "No Bank Loaded" {
+                inmem = true;
+            }
+        }
+        inmem
+    }
 
     /// Refreshes the contents of the widgets that are currently being displayed
     /// and edited in the primary window.
@@ -279,23 +314,51 @@ pub mod banks {
     /// Reads a question bank's data from a file.
     ///
     pub fn bnk_read() {
-        // todo: Check for bank in memory before proceeding.
+        // todo: The code for setting up the directories got complicated.  It should be simplified.
+
+        // region Check if a bank is already loaded.  If so, ask the user if they want to replace it.
+        if bnk_loaded() {
+            message_title("A bank is already in memory.");
+            let choice = choice2_default("Save and replace the existing bank in memory?", "Yes", "No", "");
+            match choice {
+                Some(0) => {  // User chose "Yes".
+                    bnk_save();
+                }
+                Some(1) => {  // User chose "No".  Do nothing and return.
+                    message_title("No bank loaded");
+                    return;
+                }
+                _ => {  // Some unexpected value was chosen.  Do nothing and return.
+                    message_title("No bank loaded");
+                    return;
+                }
+            }
+        }
+        // endregion
 
         // region Set up directories.
 
-        // Setup proper directory and read the file.
-        println!("\n Please choose the Bank file to be read.");
-
         let usepath: String;
 
-        {
-            // Global variable scope is restricted to avoid Mutex lock.
-            if LAST_DIR_USED.lock().unwrap().clone() == "" {
+        {   // Global variable scope is restricted to avoid Mutex lock.
+
+            if LAST_DIR_USED.lock().unwrap().clone() == "" {  // Set to default directory.
                 *LAST_DIR_USED.lock().unwrap() = BANK_DIR.to_string().clone();
             }
-            let lastdir = LAST_DIR_USED.lock().unwrap().clone();
-            usepath = file_fullpath(&lastdir);
-            *LAST_DIR_USED.lock().unwrap() = usepath.clone(); // Update LAST_DIR_USED
+            let usedir = LAST_DIR_USED.lock().unwrap().clone();
+
+            // todo: ok to here.  What if `usedir` is empty? Need to modify `file_fullpath`
+            //          to handle this case by returning the path to the empty directory
+            //          with a message.
+
+            dir_normalize_path(&usedir);
+            if !dir_is_empty(&usedir) {
+                usepath = file_fullpath(&usedir, "Choose the Bank file you want to read.");  // Add prompt to `file_fullpath`.
+            } else {
+                usepath = BANK_DIR.to_string().clone();
+            }
+            let purepath = dir_normalize_path(usepath.as_str());  // Normalize the path, truncating any file name.
+            *LAST_DIR_USED.lock().unwrap() = purepath.clone(); // Update LAST_DIR_USED
         }
         //endregion
 
@@ -1159,66 +1222,6 @@ pub mod variable {
         *var1 = datavar_outside.borrow().clone();
     }
 
-    /*
-    /// Set the parameters for a Variable.
-    ///
-    pub fn vrbl_input_parameters(data: &mut Variable) {  // Set boolean parameters only.  Leave data alone.
-
-        // todo: Turn all this into a window of radio and checkbox buttons for setting
-        //          these parameters.
-
-        match data.var_type.as_str() {
-            "Strings" => {  // Note that Strings should only come from a list.
-                data.params.is_string = true;
-                data.params.is_int = false;
-                data.params.is_from_list = true;
-            }
-
-            "Character" => {  // Note that characters also can only come from a list.
-                data.params.is_char = true;
-                data.params.is_int = false;
-                data.params.is_from_list = true;
-            }
-
-            "Integers" => {
-                data.params.num_comma_frmttd = input_bool_prompt("\n Is the value to be comma formatted?   ");
-
-                let mini_choice = input_bool_prompt("\n Is the variable contents to come from a list?   ");
-                if mini_choice {
-                    data.params.is_from_list = true;
-                    return;
-                }
-                data.params.num_min_int = input_num_prompt("\n Please enter the minimum int value:  ");
-                data.params.num_max_int = input_num_prompt("\n Please enter the maximum int value:  ");
-            }
-
-            "Decimals" => {
-                data.params.is_int = false;
-                data.params.num_dcml_places = input_num_prompt("\n How many decimal places are allowed?  ");
-                data.params.num_comma_frmttd = input_bool_prompt("\n Is the value to be comma formatted?   ");
-
-                let mini_choice = input_bool_prompt("\n Is the variable contents to come from a list?   ");
-                if mini_choice {
-                    data.params.is_from_list = true;
-                    return;
-                }
-                data.params.num_min_float = input_num_prompt("\n Please enter the minimum float value:  ");
-                data.params.num_max_float = input_num_prompt("\n Please enter the maximum float value:  ");
-            }
-
-            _ => { unreachable!(); }
-        }
-    }
-
-    /// Input more data to be used in a variable.
-    ///
-    pub fn vrbl_input_vardata(data: &mut Variable) {
-        data.var_fname = input_string_prompt("\n Please enter a title/filename for your new variable:  ");
-        vrbl_setvalues(data);
-    }
-    */
-    // I think these can now be deleted.
-
     /// Prepare a Variable for saving.
     ///
     pub fn vrbl_save(var1: &mut Variable) {
@@ -1257,8 +1260,7 @@ pub mod variable {
     pub fn vrbl_read() -> Variable {
         // region Choose the correct directory path
         let mut usepath = VARIABLE_DIR.to_string();
-        println!("\n Please choose the variable file to be used.");
-        usepath = file_fullpath(&usepath);
+        usepath = file_fullpath(&usepath, "choose the variable file to read:  " );
         {
             *LAST_DIR_USED.lock().unwrap() = usepath.clone();
         } // Set LAST_DIR_USED to the new path.
@@ -1889,6 +1891,7 @@ pub mod math_functions {
 /// Miscellaneous functions used by other modules.
 ///
 pub mod misc {
+    use std::fs;
     use crate::{banks::Bank, questions::qst_edit};
     use crate::{
         Wdgts, CURRENT_BANK, DEVELOPMENT_VERSION, PROGRAM_TITLE, QDISP_HEIGHT, SCROLLBAR_WIDTH,
@@ -1924,39 +1927,6 @@ pub mod misc {
         primwin.make_resizable(true);
     }
 
-    /*
-    pub fn onopen_popup() -> Window {
-        // On program opening, pop up a window with choice for new bank or open existing bank.
-
-        // region Set up button callback closures.
-                // Button -- Create a new question bank.
-        let bttn_newbank = move || {
-            bnk_create();
-            bnk_refresh_widgets();
-        };
-
-                // Button -- Open an existing question bank.
-        let bttn_openbank = move || {
-            bnk_read();
-            bnk_refresh_widgets();
-        };
-        // endregion
-
-        let mut wdgts = Wdgts::new();
-        {
-            wdgts = WIDGETS.lock().unwrap().clone();
-        }  // Access the WIDGETS struct
-
-        // todo: The function below is way too complex.  Find another solution.
-        let mut pop = fltk_popup_2btn(&wdgts.prim_win, Box::new(bttn_newbank), "Create new bank",
-                                  Box::new(bttn_openbank), "Open existing bank");
-        pop.set_color(Color::Red);
-
-        pop
-    }
-
-     */
-    // No longer needed -- onopen_popup()
 
     /// Creates and sets up an FLTK TextEditor window to use for
     /// a title box when displaying a question Bank.
@@ -2114,5 +2084,29 @@ pub mod misc {
             xxx, yyy
         );
         println!("The size of the primary window is :  ({}, {}) \n", www, hhh);
+    }
+
+    /// EVENTUALLY MOVE THIS FUNCTION TO  `lib_file`
+    ///
+    /// Note that this function is not safe as it does not check for errors.
+    /// Be sure that the `path` parameter has been validated
+    /// before calling this function.
+    ///
+    /// #Example
+    ///
+    ///     fn main() {
+    ///         let usepath = "/home/jtreagan/programming/mine/cards";
+    ///
+    ///         if dir_is_empty(usepath) {
+    ///             println!("\n The path  {}  is empty \n", usepath);
+    ///         } else {
+    ///             println!("\n The path  {}  is not empty \n", usepath);
+    ///         }
+    ///     }
+    ///
+    pub fn dir_is_empty(path: &str) -> bool {
+        fs::read_dir(path)
+            .map(|entries| entries.count() == 0)
+            .unwrap_or(false)
     }
 } // End   misc   module
