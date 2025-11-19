@@ -167,6 +167,11 @@ pub mod global {
         Integer(i64),
         Floating(f64),
     }
+
+
+
+
+
 } // End   global   module
 
 /// Functions that deal with the Bank struct.
@@ -338,7 +343,7 @@ pub mod banks {
 
         // region Set up directories.
 
-        let usepath: String;
+        let readpath: String;  // This will be the path to the file that is to be read.
 
         {   // Global variable scope is restricted to avoid Mutex lock.
 
@@ -351,23 +356,23 @@ pub mod banks {
             //          to handle this case by returning the path to the empty directory
             //          with a message.
 
-            dir_normalize_path(&usedir);
+            dir_normalize_path(&usedir);  // Makes sure the path ends on a folder, not a file.
             if !dir_is_empty(&usedir) {
-                usepath = file_fullpath(&usedir, "Choose the Bank file you want to read.");  // Add prompt to `file_fullpath`.
+                readpath = file_fullpath(&usedir, "Choose the Bank file you want to read.");  // Add prompt to `file_fullpath`.
             } else {
-                usepath = BANK_DIR.to_string().clone();
+                readpath = BANK_DIR.to_string().clone();
             }
-            let purepath = dir_normalize_path(usepath.as_str());  // Normalize the path, truncating any file name.
+            let purepath = dir_normalize_path(readpath.as_str());  // Normalize the path, truncating any file name.
             *LAST_DIR_USED.lock().unwrap() = purepath.clone(); // Update LAST_DIR_USED
         }
         //endregion
 
         // region Read the chosen file.
 
-        println!("\n W1 usepath == {} \n", usepath);
+        println!("\n W1 usepath == {} \n", readpath);
 
         let usebank: Bank;
-        match file_read_to_string(&usepath) {
+        match file_read_to_string(&readpath) {
             Ok(contents) => {
                 usebank = serde_json::from_str(&contents).unwrap();
                 *CURRENT_BANK.lock().unwrap() = usebank.clone();
