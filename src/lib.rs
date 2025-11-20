@@ -158,6 +158,8 @@ pub mod global {
     //          eliminate it, but maybe you can move it to the
     //          global structs section and eliminate the global module.
 
+    use crate::{BANK_DIR, LAST_DIR_USED};
+    use lib_file::dir_mngmnt::dir_normalize_path;
     use serde::{Deserialize, Serialize};
 
     #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -168,7 +170,60 @@ pub mod global {
         Floating(f64),
     }
 
+    /// This function retrieves the last directory used and ensures it is
+    ///     normalized as a proper directory path.
+    ///
+    /// If the `LAST_DIR_USED` global variable is empty, it sets it to
+    /// the default directory specified by `BANK_DIR`. It then normalizes
+    /// the path of the directory to ensure it ends in a valid directory
+    /// format (and not a file).
+    ///
+    /// # Returns
+    ///
+    /// * A `String` representing the normalized directory path.
+    ///
+    /// # Behavior
+    ///
+    /// - If `LAST_DIR_USED` is empty, it initializes it to the `BANK_DIR` value, a
+    ///     global constant that specifies the default directory for question banks.
+    /// - Ensures the directory path is properly normalized using the helper
+    ///     function `dir_normalize_path`.
+    /// - Makes use of a global variable `LAST_DIR_USED` that is protected by
+    ///     a `Mutex` for thread-safe operations.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if the `Mutex` lock on `LAST_DIR_USED` cannot be obtained,
+    /// or if there is a logic failure when attempting to normalize the directory path.
+    ///
+    /// # Dependencies
+    ///
+    /// This function uses the directory management functions in the `lib_file` crate.
+    ///
+    /// # Example
+    ///
+    ///     use std::sync::Mutex;
+    ///     use fltk::utils::oncelock::Lazy;
+    ///     use lib_file::dir_mngmnt::dir_normalize_path;
+    ///
+    ///     pub const BANK_DIR: &str = "/home/jtreagan/programming/mine/qbnk_rb7/src/qbnk_data/banks";
+    ///     pub static LAST_DIR_USED: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new(String::new()));
+    ///
+    ///     fn main() {
+    ///         *LAST_DIR_USED.lock().unwrap() = "/home/jtreagan/programming/mine/deleteme3/somefile.fde".to_string().clone();
+    ///         let path = glob_check_lastdirused();
+    ///         println!("\n {:?} \n", path);
+    ///     }
+    ///
+    ///
+    pub fn glob_check_lastdirused() -> String {
+        if LAST_DIR_USED.lock().unwrap().clone() == "" {  // Set to default directory.
+            *LAST_DIR_USED.lock().unwrap() = BANK_DIR.to_string().clone();
+        }
+        let usedir = LAST_DIR_USED.lock().unwrap().clone();
 
+        dir_normalize_path(&usedir)  // Makes sure the path ends on a folder, not a file.
+    }
 
 
 
@@ -177,15 +232,19 @@ pub mod global {
 /// Functions that deal with the Bank struct.
 ///
 pub mod banks {
+    use std::fs::File;
+    use std::io::Write;
     use crate::misc::{dir_is_empty, make_question_boxes, make_scrollgroup, make_title_txtedtr};
     use crate::{questions::*, Wdgts, APP_FLTK, BANK_DIR, CURRENT_BANK, LAST_DIR_USED, WIDGETS};
+    use fltk::dialog::{choice2_default, message_title};
     use fltk::prelude::{DisplayExt, GroupExt, WidgetExt};
     use fltk::text::TextBuffer;
-    use lib_file::{file_fltk::*, file_mngmnt::file_read_to_string, dir_mngmnt::dir_normalize_path};
+    use lib_file::{dir_mngmnt::dir_normalize_path, file_fltk::*};
+    use lib_file::file_mngmnt::file_read_to_string;
+    use lib_myfltk::fltkutils::fltk_custom_message;
     use lib_myfltk::input_fltk::*;
     use serde::{Deserialize, Serialize};
-    use std::{fs::File, io::Write};
-    use fltk::dialog::{choice2, choice2_default, message, message_default, message_title};
+    use crate::global::glob_check_lastdirused;
     //region Struct Section
 
     /// The outermost of the three structs QBC is built around.
@@ -319,7 +378,6 @@ pub mod banks {
     /// Reads a question bank's data from a file.
     ///
     pub fn bnk_read() {
-        // todo: The code for setting up the directories got complicated.  It should be simplified.
 
         // region Check if a bank is already loaded.  If so, ask the user if they want to replace it.
         if bnk_loaded() {
@@ -343,33 +401,23 @@ pub mod banks {
 
         // region Set up directories.
 
+        let usedir = glob_check_lastdirused();  // Handles the case where LAST_DIR_USED is empty.
         let readpath: String;  // This will be the path to the file that is to be read.
 
-        {   // Global variable scope is restricted to avoid Mutex lock.
-
-            if LAST_DIR_USED.lock().unwrap().clone() == "" {  // Set to default directory.
-                *LAST_DIR_USED.lock().unwrap() = BANK_DIR.to_string().clone();
-            }
-            let usedir = LAST_DIR_USED.lock().unwrap().clone();
-
-            // todo: ok to here.  What if `usedir` is empty? Need to modify `file_fullpath`
-            //          to handle this case by returning the path to the empty directory
-            //          with a message.
-
-            dir_normalize_path(&usedir);  // Makes sure the path ends on a folder, not a file.
-            if !dir_is_empty(&usedir) {
-                readpath = file_fullpath(&usedir, "Choose the Bank file you want to read.");  // Add prompt to `file_fullpath`.
-            } else {
-                readpath = BANK_DIR.to_string().clone();
-            }
-            let purepath = dir_normalize_path(readpath.as_str());  // Normalize the path, truncating any file name.
-            *LAST_DIR_USED.lock().unwrap() = purepath.clone(); // Update LAST_DIR_USED
+        if !dir_is_empty(&usedir) {
+            readpath = file_fullpath(&usedir, "Choose the Bank file you want to read.");
+        } else {
+            fltk_custom_message("The directory you chose is empty.","Return to the main menu.");
+            return;
         }
+
+        // Normalize the path, truncating any file name before updating LAST_DIR_USED.
+        let purepath = dir_normalize_path(readpath.as_str());
+        *LAST_DIR_USED.lock().unwrap() = purepath.clone(); // Update LAST_DIR_USED
+
         //endregion
 
         // region Read the chosen file.
-
-        println!("\n W1 usepath == {} \n", readpath);
 
         let usebank: Bank;
         match file_read_to_string(&readpath) {
@@ -814,7 +862,6 @@ pub mod questions {
 /// Functions that deal with the Variable struct.
 ///
 pub mod variable {
-
     use crate::global::{TypeWrapper, TypeWrapper::*};
     use crate::{lists::*, math_functions::*, LAST_DIR_USED, VARIABLE_DIR};
     use fltk::app;
@@ -1896,7 +1943,6 @@ pub mod math_functions {
 /// Miscellaneous functions used by other modules.
 ///
 pub mod misc {
-    use std::fs;
     use crate::{banks::Bank, questions::qst_edit};
     use crate::{
         Wdgts, CURRENT_BANK, DEVELOPMENT_VERSION, PROGRAM_TITLE, QDISP_HEIGHT, SCROLLBAR_WIDTH,
@@ -1906,6 +1952,7 @@ pub mod misc {
     use fltk::text::{TextBuffer, TextDisplay, TextEditor};
     use fltk::{button::Button, enums::Color, group::Scroll};
     use fltk::{text, window::Window};
+    use std::fs;
 
     /// Gets and returns the text from a given FLTK TextEditor.
     ///

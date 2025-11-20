@@ -172,9 +172,9 @@ dependencies = [
 
 [[package]]
 name = "lib_myfltk"
-version = "0.1.6"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee6d53bbd3abf532ea438265ce1aceae90e1d2ae8a665815e6e57a60c4dbc26e"
+checksum = "4081ee070dd016341e265dc293e9fda739de723a769dfb36dc2938e4fdd3c59b"
 dependencies = [
  "fltk",
  "lib_utils",

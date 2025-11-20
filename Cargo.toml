@@ -23,7 +23,7 @@ serde = { version = "1.0.204", features = ["derive"] }
 fltk = { version = "^1.5.5", features = ["fltk-bundled"] }
 
 # Reagan created crates
-lib_myfltk = "0.1.6"
+lib_myfltk = "0.1.7"
 #lib_myfltk = {path = "/home/jtreagan/programming/mine/lib_myfltk"}
 lib_utils = "0.1.3"
 lib_file = "0.1.6"
