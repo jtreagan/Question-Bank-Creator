@@ -158,7 +158,7 @@ pub mod global {
     //          eliminate it, but maybe you can move it to the
     //          global structs section and eliminate the global module.
 
-    use crate::{BANK_DIR, LAST_DIR_USED};
+    use crate::{BANK_DIR, DATA_GENERAL_FOLDER, LAST_DIR_USED};
     use lib_file::dir_mngmnt::dir_normalize_path;
     use serde::{Deserialize, Serialize};
 
@@ -218,7 +218,7 @@ pub mod global {
     ///
     pub fn glob_check_lastdirused() -> String {
         if LAST_DIR_USED.lock().unwrap().clone() == "" {  // Set to default directory.
-            *LAST_DIR_USED.lock().unwrap() = BANK_DIR.to_string().clone();
+            *LAST_DIR_USED.lock().unwrap() = DATA_GENERAL_FOLDER.to_string().clone();
         }
         let usedir = LAST_DIR_USED.lock().unwrap().clone();
 
@@ -457,29 +457,20 @@ pub mod banks {
     ///
     pub fn bnk_save() {
 
-        // region Set up directories.
-        if LAST_DIR_USED.lock().unwrap().clone() == "" {
-            *LAST_DIR_USED.lock().unwrap() = BANK_DIR.to_string().clone();
-        } // If there is no recently used directory, use default.
+        let lastdir = glob_check_lastdirused();  // Handles the case where LAST_DIR_USED is empty.
 
-        let lastdir: String;
-        {
-            lastdir = LAST_DIR_USED.lock().unwrap().clone();
-        }
-
-        let usebank: Bank;
+        let usebank: Bank;   // Pull the data from CURRENT_BANK.
         {
             usebank = CURRENT_BANK.lock().unwrap().clone();
         }
-        // endregion
 
-        // region Save the bank.
-        let usename = usebank.bank_title.clone();
-        let usepath = file_browse_tosave(&lastdir, usename.as_str(), "*.bnk");
+        let usename = usebank.bank_title.clone();  // Pull the bank title to be used as the file name.
+        let usepath = file_browse_tosave(&lastdir, usename.as_str(), "*.bnk");  // Browse to choose directory and set file name.
 
-        {
-            *LAST_DIR_USED.lock().unwrap() = usepath.clone();
-        } // Reset the last used directory value.
+        {  // Since the new path has been chosen, update LAST_DIR_USED.
+            let purepath = dir_normalize_path(usepath.as_str());  // Normalize the path and truncate any file name.
+            *LAST_DIR_USED.lock().unwrap() = purepath.clone();
+        }
 
         bnk_save_as_json(&usepath);
         // endregion
@@ -538,7 +529,7 @@ pub mod questions {
     use lib_myfltk::input_fltk::{input_string, input_strvec};
     use lib_utils::utilities::*;
     use serde::{Deserialize, Serialize};
-
+    use crate::global::glob_check_lastdirused;
     //region Struct Section
 
     /// The second layer of the three structs QBC is built around.
@@ -781,9 +772,9 @@ pub mod questions {
         // todo: Change the display of the variable name to be more readable without using
         //          flags.
 
-        let usedir = VARIABLE_DIR.to_string();
+        let lastdir = glob_check_lastdirused();
 
-        let path = file_pathonly(&usedir, "Choose the variable you want to insert.");
+        let path = file_pathonly(&lastdir, "Choose the folder that contains your variable files.");
         {
             LAST_DIR_USED.lock().unwrap().clone_from(&path); // Refresh LAST_DIR_USED
         }
@@ -795,51 +786,8 @@ pub mod questions {
         rpltxt
     }
 
-    /*
-        /// This is no longer needed.
-        pub fn qst_read() -> Question {
-
-            // region Choose the desired path.
-            let mut usedir = String::new();
-            {
-                usedir = LAST_DIR_USED.lock().unwrap().clone();
-            }
-            println!("\n Please choose the Question file to be read.");
-            let usepath = file_fullpath(&usedir);
-            // endregion
-
-            match file_read_to_string(&usepath) {
-                Ok(contents) => {
-                    let newquest = serde_json::from_str(&contents).unwrap();
-                    newquest
-                }
-                Err(err) => {
-                    eprintln!("\n Error reading the file: {} \n", err);
-                    panic!("\n Error reading the file. \n");
-                }
-            }
-
-        }
 
 
-        /*
-        pub fn qst_fill_varvec_dirlist() -> Vec<Variable> {
-            println!("\n Please choose the variables you want to include as part of your question:  ");
-            let path = file_pathonly();
-            let flist = file_get_dir_list(&path);
-            let flist_vec = chkbox_shift_menu(&flist);
-            let mut usevec: Vec<Variable> = Vec::new();
-
-            for item in flist_vec {
-                let flist_fullpath = format!("{}/{}", path, item);
-                println!("{}", flist_fullpath);
-                usevec.push(vrbl_read_nogetpath(&flist_fullpath));
-            };
-            usevec
-        }
-    */   //fn qst_fill_varvec_dirlist()  --  delete later.
-
-         */ // Delete later.
 
     /*
        -- Answers will be calculated from the current variable values.
@@ -851,12 +799,13 @@ pub mod questions {
        -- And then there be equations!!!!
 
     */ // Issues & questions
+
 } // End   questions   module
 
 /// Functions that deal with the Variable struct.
 ///
 pub mod variable {
-    use crate::global::{TypeWrapper, TypeWrapper::*};
+    use crate::global::{glob_check_lastdirused, TypeWrapper, TypeWrapper::*};
     use crate::{lists::*, math_functions::*, LAST_DIR_USED, VARIABLE_DIR};
     use fltk::app;
     use fltk::button::{Button, CheckButton, RadioLightButton};
@@ -878,6 +827,7 @@ pub mod variable {
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Variable {
         pub var_fname: String,
+        pub display_name: String,
         pub params: VarPrmtrs,
         pub list_fname: String,
         pub content: TypeWrapper,
@@ -887,7 +837,8 @@ pub mod variable {
     impl Default for Variable {
         fn default() -> Self {
             Self {
-                var_fname: "new_variable".to_string(),
+                var_fname: "New_Variable".to_string(),
+                display_name: "New_Variable".to_string(),
                 params: VarPrmtrs::new(),
                 list_fname: "".to_string(),
                 content: Integer(0),
@@ -898,9 +849,11 @@ pub mod variable {
 
     impl Variable {
         /// Initialize a new Variable.
+        ///
         pub fn new() -> Variable {
             Self::default()
         }
+
     } // End Variable impl
 
     /// Struct that holds the parameters that determine the behavior
@@ -947,6 +900,7 @@ pub mod variable {
             }
         }
     } // ~~~~~ End VarPrmtrs impl ~~~~~
+
       //endregion
 
     /// Create a new variable.
@@ -1271,12 +1225,17 @@ pub mod variable {
     /// Prepare a Variable for saving.
     ///
     pub fn vrbl_save(var1: &mut Variable) {
+
+        let lastdir = glob_check_lastdirused();
         {
             if LAST_DIR_USED.lock().unwrap().clone() == "" {
                 *LAST_DIR_USED.lock().unwrap() = VARIABLE_DIR.to_string().clone();
             } // If no path loaded, use default.
         } // Access the global variable.
         let lastdir = LAST_DIR_USED.lock().unwrap().clone();
+
+
+
         let usepath = file_browse_tosave(&lastdir, "",
           "Variable Files   \t*.vrbl\nText Files   \t*.txt\nList Files    \t*.lst\nAll Files    \t*.*");
 
