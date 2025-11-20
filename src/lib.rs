@@ -381,7 +381,7 @@ pub mod banks {
 
         // region Check if a bank is already loaded.  If so, ask the user if they want to replace it.
         if bnk_loaded() {
-            message_title("A bank is already in memory.");
+            message_title("A bank is already in memory.");  // todo: If bank is loaded section still needs help.
             let choice = choice2_default("Save and replace the existing bank in memory?", "Yes", "No", "");
             match choice {
                 Some(0) => {  // User chose "Yes".
@@ -429,14 +429,8 @@ pub mod banks {
             // https://users.rust-lang.org/t/help-understanding-never-used-warning/125562/2
             Err(err) => {
                 eprintln!("\n Error reading the file: {} \n", err);
-                panic!("\n Error reading the file. \n");
+                fltk_custom_message("Error reading the file.","Return to the main menu.");
             }
-        }
-        // endregion
-
-        // region Pass the new bank into CURRENT_BANK
-        {
-            *CURRENT_BANK.lock().unwrap() = usebank.clone();
         }
         // endregion
     }
