@@ -676,11 +676,12 @@ pub mod questions {
     /// data into Variable structs and saving them in the
     /// `quest.var_vec` vector field of the current question.
     pub fn qst_fill_varvec_parsetext(quest: &mut Question) {
+
         // region Create a vector of the variable names that have been flagged in the text.
         let mut usevec = util_flaggedtxt_2vec(&quest.qtext, '§');
         usevec.sort();
         usevec.dedup(); // Remove repeats of the flagged variable names.
-                        // endregion
+        // endregion
 
         // region Read the variable files from disk and insert them into the variable vector.
         quest.var_vec.clear();
@@ -805,8 +806,9 @@ pub mod questions {
 /// Functions that deal with the Variable struct.
 ///
 pub mod variable {
+
     use crate::global::{glob_check_lastdirused, TypeWrapper, TypeWrapper::*};
-    use crate::{lists::*, math_functions::*, LAST_DIR_USED, VARIABLE_DIR};
+    use crate::{lists::*, math_functions::*, CURRENT_BANK, LAST_DIR_USED, VARIABLE_DIR};
     use fltk::app;
     use fltk::button::{Button, CheckButton, RadioLightButton};
     use fltk::enums::{Color, FrameType};
@@ -819,6 +821,11 @@ pub mod variable {
     use std::cell::RefCell;
     use std::rc::Rc;
     use std::{fs::File, io::Write};
+    use fltk::dialog::{choice2_default, message_title};
+    use lib_file::dir_mngmnt::dir_normalize_path;
+    use lib_myfltk::fltkutils::fltk_custom_message;
+    use crate::banks::{bnk_loaded, bnk_save, Bank};
+    use crate::misc::dir_is_empty;
 
     //region Struct Section
 
@@ -1227,26 +1234,19 @@ pub mod variable {
     pub fn vrbl_save(var1: &mut Variable) {
 
         let lastdir = glob_check_lastdirused();
-        {
-            if LAST_DIR_USED.lock().unwrap().clone() == "" {
-                *LAST_DIR_USED.lock().unwrap() = VARIABLE_DIR.to_string().clone();
-            } // If no path loaded, use default.
-        } // Access the global variable.
-        let lastdir = LAST_DIR_USED.lock().unwrap().clone();
-
-
 
         let usepath = file_browse_tosave(&lastdir, "",
           "Variable Files   \t*.vrbl\nText Files   \t*.txt\nList Files    \t*.lst\nAll Files    \t*.*");
 
-        {
-            *LAST_DIR_USED.lock().unwrap() = usepath.clone();
-        } // Set LAST_DIR_USED to the new path.
+        {  // Set LAST_DIR_USED to the new path.
+            let purepath: String = dir_normalize_path(&usepath);
+            *LAST_DIR_USED.lock().unwrap() = purepath.clone();
+        }
 
         var1.var_fname = file_path_to_fname(&usepath);
         vrbl_save_as_json(var1, &usepath);
 
-        //println!("\n The variable has been saved.");
+        println!("\n The variable has been saved \n");
     }
 
     /// Save a Variable in json format.
@@ -1262,25 +1262,43 @@ pub mod variable {
 
     /// Read a variable from a file.
     ///
-    pub fn vrbl_read() -> Variable {
-        // region Choose the correct directory path
-        let mut usepath = VARIABLE_DIR.to_string();
-        usepath = file_fullpath(&usepath, "choose the variable file to read:  " );
-        {
-            *LAST_DIR_USED.lock().unwrap() = usepath.clone();
-        } // Set LAST_DIR_USED to the new path.
-          // endregion
+    pub fn vrbl_read() -> Option<Variable> {
 
-        match file_read_to_string(&usepath) {
+        // region Deal with the directory path
+
+        let lastdir = glob_check_lastdirused();
+        let readpath: String;  // This will be the path to the file that is to be read.
+
+        let usepath = file_fullpath(&lastdir, "Choose which variable file you want to use" );
+
+        {  // Set LAST_DIR_USED to the new path.
+            let purepath: String = dir_normalize_path(&usepath);
+            *LAST_DIR_USED.lock().unwrap() = purepath.clone();
+        }
+
+        if !dir_is_empty(&usepath) {
+            readpath = file_fullpath(&usepath, "Choose the Bank file you want to read.");
+        } else {
+            fltk_custom_message("The directory you chose is empty.","Return to the question editor.");
+            return None;
+        }
+
+        // endregion
+
+        //region Read the file & return the Variable struct
+
+        match file_read_to_string(&readpath) {
             Ok(contents) => {
-                
                 serde_json::from_str(&contents).unwrap()
             }
             Err(err) => {
                 eprintln!("\n Error reading the file: {} \n", err);
-                panic!("\n Error reading the file. \n");
+                fltk_custom_message("Could not read the file.","Return to the question editor.");
+                None
             }
         }
+
+        // endregion
     }
 
     /// Sets and calculates the values of non-boolean fields in the Variable struct.
@@ -1372,15 +1390,27 @@ pub mod variable {
     /// Recalculates the values in the non-boolean fields of a Variable struct.
     ///
     pub fn vrbl_recalc() {
-        let mut usevar = vrbl_read();
+        match vrbl_read() {
+            Some(mut vrbl) => {
 
-        println!("\n The variable before recalc is: \n {:?}", usevar);
+                println!("\n The variable before recalc is: \n {:?}", vrbl);
 
-        vrbl_setvalues(&mut usevar);
-        vrbl_save(&mut usevar);
+                vrbl_setvalues(&mut vrbl);
 
-        println!("\n The variable after recalc is: \n {:?} \n", usevar);
+                println!("\n The variable after recalc is: \n {:?} \n", vrbl);
+
+                vrbl_save(&mut vrbl);
+            }
+            None => {}
+        }
+
+        //let mut usevar = vrbl_read();
+
+        //vrbl_setvalues(&mut usevar);
+        //vrbl_save(&mut usevar);
+
     }
+
 } // End   variable   module
 
 /// Functions for creating and manipulating lists.
