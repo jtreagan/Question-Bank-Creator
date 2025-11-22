@@ -42,6 +42,10 @@
        //          functions.  Also, check the three utility crates.  The
        //          file_browse_save_fltr() function will need attention.
 
+       // TODO:  In all the *_read() functions, the `if` statement that checks to make sure
+       //            the file being read is not empty could possibly be turned into a function.
+       //            This would make the code more readable and easier to maintain.
+
 */
 // TODO's
 
@@ -154,9 +158,6 @@ impl Clone for Wdgts {
 /// Holds the TypeWrapper enum.
 ///
 pub mod global {
-    // todo:  Do you really need this?  I don't think you can
-    //          eliminate it, but maybe you can move it to the
-    //          global structs section and eliminate the global module.
 
     use crate::{BANK_DIR, DATA_GENERAL_FOLDER, LAST_DIR_USED};
     use lib_file::dir_mngmnt::dir_normalize_path;
@@ -1454,13 +1455,17 @@ pub mod variable {
 /// Functions for creating and manipulating lists.
 ///
 pub mod lists {
+
     use crate::{APP_FLTK, LAST_DIR_USED, LIST_DIR, VARIABLE_DIR};
-    use lib_file::file_fltk::{file_browse_tosave, file_fullpath_fltr};
+    use lib_file::file_fltk::{file_browse_tosave, file_fullpath, file_fullpath_fltr, file_pathonly};
     use lib_file::file_mngmnt::file_read_to_string;
     use lib_myfltk::input_fltk::*;
     use serde::{Deserialize, Serialize};
     use std::{fs::File, io::Write};
-
+    use lib_file::dir_mngmnt::dir_normalize_path;
+    use lib_myfltk::fltkutils::fltk_custom_message;
+    use crate::global::glob_check_lastdirused;
+    use crate::misc::dir_is_empty;
     // region Struct section
 
     /// Contains a vector field for each of the four data types
@@ -1546,46 +1551,58 @@ pub mod lists {
 
     /// Read a list (in json format) from a file.  Returns a tuple (filename, List)
     /// containing the file name that was read along with the reconstituted list.
-    pub fn list_read(typech: &str) -> (String, List) {
-        {
-            if LAST_DIR_USED.lock().unwrap().clone() == "" {
-                *LAST_DIR_USED.lock().unwrap() = VARIABLE_DIR.to_string().clone();
-            } // If no path loaded, use default.
-        } // Access the global variable.
-        let lastdir = LAST_DIR_USED.lock().unwrap().clone();
+    pub fn list_read(typech: &str) -> Option<(String, List)> {  // Do you really need to return the filename?
 
-        //let mut startdir = String::new();
-        //{
-        //startdir = LAST_DIR_USED.lock().unwrap().clone();
-        //}
+        // region Deal with the directory path
+        let lastdir = glob_check_lastdirused();
+        //let readpath: String;  // This will be the path to the file that is to be read.
 
-        // TODO: Should this return an option or result rather than  `unwrap()` or `panic!()`?
-        // TODO: This has not been tested after the last modifications were made.
-        // todo: You aren't dealing with LAST_DIR_USED correctly.
-        // todo: The returns of this function don't look right.  Check it out.
+        let usepath = file_pathonly(&lastdir, "Choose the folder where you save your List files." );
+
+        {  // Set LAST_DIR_USED to the new path.
+            let purepath: String = dir_normalize_path(&usepath);
+            *LAST_DIR_USED.lock().unwrap() = purepath.clone();
+        }
+
+
+        // endregion
+
+        //region Read the file & return the List struct
 
         let readlist = loop {
-            let usename = file_fullpath_fltr(&lastdir, "*.lst");
-            *LAST_DIR_USED.lock().unwrap() = usename.clone();
 
-            match file_read_to_string(&usename) {
+            if dir_is_empty(&usepath) {
+                fltk_custom_message("The directory you chose is empty.","Return to program.");
+                return None;
+            }
+
+            {  // Set LAST_DIR_USED to the new path.
+                let purepath: String = dir_normalize_path(&usepath);
+                *LAST_DIR_USED.lock().unwrap() = purepath.clone();
+            }
+
+            let uselistname = file_fullpath_fltr(&usepath, "*.lst");
+
+            match file_read_to_string(&uselistname) {
                 Ok(contents) => {
                     let newlist = serde_json::from_str(&contents).unwrap();
-                    let typchk = list_check_typematch(&newlist, typech);
-                    if !typchk {
+                    let typechk = list_check_typematch(&newlist, typech);
+                    if !typechk {
                         continue;
                     } else {
-                        break (usename, newlist);
+                        break (uselistname, newlist);
                     }
                 }
                 Err(err) => {
                     eprintln!("\n Error reading the file: {} \n", err);
-                    panic!("\n Error reading the file. \n");
+                    fltk_custom_message("Could not read the file.","Return.");
+                    return None;
                 }
             }
         };
+        // endregion
 
-        readlist
+        Some(readlist)
     }
 
     /// Edit an existing list.  Not yet implementd
@@ -1660,6 +1677,7 @@ pub mod lists {
             true
         }
     }
+
 } // End  lists module
 
 /// Functions for use in creating menus.
