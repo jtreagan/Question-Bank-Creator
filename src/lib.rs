@@ -676,6 +676,7 @@ pub mod questions {
     /// data into Variable structs and saving them in the
     /// `quest.var_vec` vector field of the current question.
     pub fn qst_fill_varvec_parsetext(quest: &mut Question) {
+        // Note:  All variable files must be in the same directory.
 
         // region Create a vector of the variable names that have been flagged in the text.
         let mut usevec = util_flaggedtxt_2vec(&quest.qtext, '§');
@@ -684,11 +685,27 @@ pub mod questions {
         // endregion
 
         // region Read the variable files from disk and insert them into the variable vector.
+
+        let lastdir = glob_check_lastdirused();
+        let usepath = file_pathonly(&lastdir, "Choose the folder that contains your variable files.");
+
         quest.var_vec.clear();
-        for _item in usevec {
-            let newvar = vrbl_read();
-            quest.var_vec.push(newvar);
+        for item in usevec.iter() {
+            match vrbl_read_with_pathfname(&usepath, item) {
+                Some(newvar) => {
+                    quest.var_vec.push(newvar);
+                }
+                None => {
+                    eprintln!("\n Error reading the Variable file {}. \n", item);
+                    fltk_custom_message("Error reading the Variable file.","Return to the question editor.");
+                }
+            }
         }
+
+            // todo:  Add a check to make sure all needed variable files are in the same directory.
+            // todo:  Add a check to make sure those variable files exist and are readable.
+            // todo:  For later.  Allow for the variable files to be in different directories.
+
         // endregion
     }
 
@@ -1269,7 +1286,7 @@ pub mod variable {
         let lastdir = glob_check_lastdirused();
         let readpath: String;  // This will be the path to the file that is to be read.
 
-        let usepath = file_fullpath(&lastdir, "Choose which variable file you want to use" );
+        let usepath = file_pathonly(&lastdir, "Choose the folder where you save your Variable files." );
 
         {  // Set LAST_DIR_USED to the new path.
             let purepath: String = dir_normalize_path(&usepath);
@@ -1277,9 +1294,9 @@ pub mod variable {
         }
 
         if !dir_is_empty(&usepath) {
-            readpath = file_fullpath(&usepath, "Choose the Bank file you want to read.");
+            readpath = file_fullpath(&usepath, "Choose the Variable file you want to read.");
         } else {
-            fltk_custom_message("The directory you chose is empty.","Return to the question editor.");
+            fltk_custom_message("The directory you chose is empty.","Return to program.");
             return None;
         }
 
@@ -1299,6 +1316,27 @@ pub mod variable {
         }
 
         // endregion
+    }
+
+    /// Read a variable from a file.
+    ///
+    pub fn vrbl_read_with_pathfname(usepath: &str, fname: &str) -> Option<Variable> {
+    // Note:  This function requires that the usepath & fname parameters
+    //          have already been validated & normalized before passing them
+    //          to the function.
+
+        let readpath = format!("{}/{}", usepath, fname);
+
+        match file_read_to_string(&readpath) {
+            Ok(contents) => {
+                serde_json::from_str(&contents).unwrap()
+            }
+            Err(err) => {
+                eprintln!("\n Error reading the file: {} \n", err);
+                fltk_custom_message("Could not read the file.","Return to the question editor.");
+                None
+            }
+        }
     }
 
     /// Sets and calculates the values of non-boolean fields in the Variable struct.
