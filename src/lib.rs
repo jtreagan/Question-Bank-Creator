@@ -1434,17 +1434,30 @@ pub mod variable {
                 }
 
                 "floats" => {
-                    println!("\n Please choose a list to be read.");
-                    let newlist = list_read("floats");
-                    var1.list_fname = newlist.0;
 
-                    let item = vec_random_choice(&newlist.1.decimals);
-                    match item {
-                        Some(x) => {
-                            println!("\n The chosen item is:  {:?}", x);
-                            var1.content = Floating(*x.0);
+                    let read_optn = list_read("floats");
+                    match read_optn {
+                        Some((fname, newlist)) => {
+                            var1.list_fname = fname; // Sets the value of the variable's listname field
+                            let usevec = newlist.decimals.clone(); // Clones the list content vector so you can mess with it.
+                            let item = vec_random_choice(&usevec);
+                            match item {
+                                Some(x) => {
+                                    println!("\n The chosen item is:  {:?}", x);
+                                    var1.content = Floating(*x.0);
+                                }
+                                None => {
+                                    fltk_custom_message("No item was chosen.", "Return.");
+                                    eprintln!("\n The function `vec_random_choice()` returned `None`. \n");
+                                    return;
+                                },
+                            }
                         }
-                        None => panic!("No item was chosen."),
+                        None => {
+                            eprintln!("No list file selected.");
+                            fltk_custom_message("No list file selected.", "Return to the question editor.");
+                            return;
+                        }
                     }
                 }
 
