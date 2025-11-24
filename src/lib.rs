@@ -1345,7 +1345,9 @@ pub mod variable {
     pub fn vrbl_setvalues(var1: &mut Variable) {
         if var1.params.is_from_list {  // If the variable content comes from a list.
 
-            match var1.var_type.as_str() {
+            // todo: Delete the debug `println!` statements.
+
+            match var1.var_type.as_str() { // Set the variable content field.
                 "Strings" => {
                     let read_optn = list_read("Strings");
                     match read_optn {
@@ -1376,32 +1378,58 @@ pub mod variable {
                 }
 
                 "chars" => {
-                    println!("\n Please choose a list to be read.");
-                    let newlist = list_read("chars");
-                    var1.list_fname = newlist.0;
+                    let read_optn = list_read("chars");
+                    match read_optn {
+                        Some((fname, newlist)) => {
+                            var1.list_fname = fname; // Sets the value of the variable's listname field
+                            let usevec = newlist.runes.clone(); // Clones the list content vector so you can mess with it.
+                            let item = vec_random_choice(&usevec);
+                            match item {
+                                Some(x) => {
+                                    println!("\n The chosen item is:  {:?}", x);
+                                    var1.content = Letter(*x.0);
+                                }
+                                None => {
+                                    fltk_custom_message("No item was chosen.","Return.");
+                                    eprintln!("\n The function `vec_random_choice()` returned `None`. \n");
+                                    return;
+                                },
+                            }
 
-                    let item = vec_random_choice(&newlist.1.runes);
-                    match item {
-                        Some(x) => {
-                            println!("\n The chosen item is:  {:?}", x);
-                            var1.content = Letter(*x.0);
                         }
-                        None => panic!("No item was chosen."),
+                        None => {
+                            eprintln!("No list file selected.");
+                            fltk_custom_message("No list file selected.","Return to the question editor.");
+                            return;
+                        }
+
                     }
                 }
 
                 "ints" => {
-                    println!("\n Please choose a list to be read.");
-                    let newlist = list_read("ints");
-                    var1.list_fname = newlist.0;
-
-                    let item = vec_random_choice(&newlist.1.intsigned);
-                    match item {
-                        Some(x) => {
-                            println!("\n The chosen item is:  {:?}", x);
-                            var1.content = Integer(*x.0);
+                    let read_optn = list_read("ints");
+                    match read_optn {
+                        Some((fname, newlist)) => {
+                            var1.list_fname = fname; // Sets the value of the variable's listname field
+                            let usevec = newlist.intsigned.clone(); // Clones the list content vector so you can mess with it.
+                            let item = vec_random_choice(&usevec);
+                            match item {
+                                Some(x) => {
+                                    println!("\n The chosen item is:  {:?}", x);
+                                    var1.content = Integer(*x.0);
+                                }
+                                None => {
+                                    fltk_custom_message("No item was chosen.", "Return.");
+                                    eprintln!("\n The function `vec_random_choice()` returned `None`. \n");
+                                    return;
+                                },
+                            }
                         }
-                        None => panic!("No item was chosen."),
+                        None => {
+                            eprintln!("No list file selected.");
+                            fltk_custom_message("No list file selected.", "Return to the question editor.");
+                            return;
+                        }
                     }
                 }
 
@@ -1422,6 +1450,9 @@ pub mod variable {
 
                 _ => {}
             }
+
+
+
         } else if var1.params.is_int {
             // Numeric values will always be randomly generated.
             let numint: i64 =
