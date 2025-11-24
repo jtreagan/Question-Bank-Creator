@@ -1343,25 +1343,35 @@ pub mod variable {
     /// Sets and calculates the values of non-boolean fields in the Variable struct.
     ///
     pub fn vrbl_setvalues(var1: &mut Variable) {
-        //let lastdir = LAST_DIR_USED.lock().unwrap();
+        if var1.params.is_from_list {  // If the variable content comes from a list.
 
-        if var1.params.is_from_list {
-            // The variable content is to come from a list.
             match var1.var_type.as_str() {
                 "Strings" => {
-                    println!("\n Please choose the list you want to use.");
-                    let newlist = list_read("Strings"); // Returns a tuple (listname, List)
-                    var1.list_fname = newlist.0; // Sets the value of the variable's listname field.
+                    let read_optn = list_read("Strings");
+                    match read_optn {
+                        Some((fname, newlist)) => {
+                            var1.list_fname = fname; // Sets the value of the variable's listname field
+                            let usevec = newlist.words.clone(); // Clones the list content vector so you can mess with it.
+                            let item = vec_random_choice(&usevec);
+                            match item {
+                                Some(x) => {
+                                    println!("\n The chosen item is:  {:?}", x);
+                                    var1.content = Alphanum(x.0.to_string());
+                                }
+                                None => {
+                                    fltk_custom_message("No item was chosen.","Return.");
+                                    eprintln!("\n The function `vec_random_choice()` returned `None`. \n");
+                                    return;
+                                },
+                            }
 
-                    let usevec = newlist.1.words.clone(); // Clones the list content vector.
-                                                          //let usevec_str = vec_string_to_str(&usevec);
-                    let item = vec_random_choice(&usevec);
-                    match item {
-                        Some(x) => {
-                            println!("\n The chosen item is:  {:?}", x);
-                            var1.content = Alphanum(x.0.to_string());
                         }
-                        None => panic!("No item was chosen."),
+                        None => {
+                            eprintln!("No list file selected.");
+                            fltk_custom_message("No list file selected.","Return to the question editor.");
+                            return;
+                        }
+
                     }
                 }
 
@@ -1555,15 +1565,12 @@ pub mod lists {
 
         // region Deal with the directory path
         let lastdir = glob_check_lastdirused();
-        //let readpath: String;  // This will be the path to the file that is to be read.
-
         let usepath = file_pathonly(&lastdir, "Choose the folder where you save your List files." );
 
         {  // Set LAST_DIR_USED to the new path.
             let purepath: String = dir_normalize_path(&usepath);
             *LAST_DIR_USED.lock().unwrap() = purepath.clone();
         }
-
 
         // endregion
 
