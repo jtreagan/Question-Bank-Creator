@@ -159,7 +159,7 @@ impl Clone for Wdgts {
 ///
 pub mod global {
 
-    use crate::{BANK_DIR, DATA_GENERAL_FOLDER, LAST_DIR_USED};
+    use crate::{DATA_GENERAL_FOLDER, LAST_DIR_USED};
     use lib_file::dir_mngmnt::dir_normalize_path;
     use serde::{Deserialize, Serialize};
 
@@ -236,7 +236,7 @@ pub mod banks {
     use std::fs::File;
     use std::io::Write;
     use crate::misc::{dir_is_empty, make_question_boxes, make_scrollgroup, make_title_txtedtr};
-    use crate::{questions::*, Wdgts, APP_FLTK, BANK_DIR, CURRENT_BANK, LAST_DIR_USED, WIDGETS};
+    use crate::{questions::*, Wdgts, APP_FLTK, CURRENT_BANK, LAST_DIR_USED, WIDGETS};
     use fltk::dialog::{choice2_default, message_title};
     use fltk::prelude::{DisplayExt, GroupExt, WidgetExt};
     use fltk::text::TextBuffer;
@@ -246,6 +246,7 @@ pub mod banks {
     use lib_myfltk::input_fltk::*;
     use serde::{Deserialize, Serialize};
     use crate::global::glob_check_lastdirused;
+
     //region Struct Section
 
     /// The outermost of the three structs QBC is built around.
@@ -466,7 +467,9 @@ pub mod banks {
         }
 
         let usename = usebank.bank_title.clone();  // Pull the bank title to be used as the file name.
-        let usepath = file_browse_tosave(&lastdir, usename.as_str(), "*.bnk");  // Browse to choose directory and set file name.
+
+        let filters = vec!["Banks", "*.bnk", "Lists", "*.lst", "Variables", "*.vrbl", "Text", "*.txt", "All Files", "*.*"];
+        let usepath = file_browse_tosave(&lastdir, usename.as_str(), &filters);  // Browse to choose directory and set file name.
 
         {  // Since the new path has been chosen, update LAST_DIR_USED.
             let purepath = dir_normalize_path(usepath.as_str());  // Normalize the path and truncate any file name.
@@ -826,7 +829,7 @@ pub mod questions {
 pub mod variable {
 
     use crate::global::{glob_check_lastdirused, TypeWrapper, TypeWrapper::*};
-    use crate::{lists::*, math_functions::*, CURRENT_BANK, LAST_DIR_USED, VARIABLE_DIR};
+    use crate::{lists::*, math_functions::*, LAST_DIR_USED};
     use fltk::app;
     use fltk::button::{Button, CheckButton, RadioLightButton};
     use fltk::enums::{Color, FrameType};
@@ -839,10 +842,8 @@ pub mod variable {
     use std::cell::RefCell;
     use std::rc::Rc;
     use std::{fs::File, io::Write};
-    use fltk::dialog::{choice2_default, message_title};
     use lib_file::dir_mngmnt::dir_normalize_path;
     use lib_myfltk::fltkutils::fltk_custom_message;
-    use crate::banks::{bnk_loaded, bnk_save, Bank};
     use crate::misc::dir_is_empty;
 
     //region Struct Section
@@ -937,6 +938,8 @@ pub mod variable {
         let mut var1 = Variable::new();
 
         vrbl_parameters_input_box(&mut var1);
+
+        vrbl_setvalues(&mut var1);
 
         println!(
             "\n W3 -- Back in vrbl_create():  The Variable struct now contains:  {:?} \n",
@@ -1253,8 +1256,8 @@ pub mod variable {
 
         let lastdir = glob_check_lastdirused();
 
-        let usepath = file_browse_tosave(&lastdir, "",
-          "Variable Files   \t*.vrbl\nText Files   \t*.txt\nList Files    \t*.lst\nAll Files    \t*.*");
+        let filters = vec!["Variables", "*.vrbl", "Banks", "*.bnk", "Lists", "*.lst", "Text", "*.txt", "All Files", "*.*"];
+        let usepath = file_browse_tosave(&lastdir, "", &filters);
 
         {  // Set LAST_DIR_USED to the new path.
             let purepath: String = dir_normalize_path(&usepath);
@@ -1344,8 +1347,6 @@ pub mod variable {
     ///
     pub fn vrbl_setvalues(var1: &mut Variable) {
         if var1.params.is_from_list {  // If the variable content comes from a list.
-
-            // todo: Delete the debug `println!` statements.
 
             match var1.var_type.as_str() { // Set the variable content field.
                 "Strings" => {
@@ -1510,8 +1511,8 @@ pub mod variable {
 ///
 pub mod lists {
 
-    use crate::{APP_FLTK, LAST_DIR_USED, LIST_DIR, VARIABLE_DIR};
-    use lib_file::file_fltk::{file_browse_tosave, file_fullpath, file_fullpath_fltr, file_pathonly};
+    use crate::{APP_FLTK, LAST_DIR_USED};
+    use lib_file::file_fltk::{file_browse_tosave, file_fullpath_fltr, file_pathonly};
     use lib_file::file_mngmnt::file_read_to_string;
     use lib_myfltk::input_fltk::*;
     use serde::{Deserialize, Serialize};
@@ -1520,6 +1521,7 @@ pub mod lists {
     use lib_myfltk::fltkutils::fltk_custom_message;
     use crate::global::glob_check_lastdirused;
     use crate::misc::dir_is_empty;
+
     // region Struct section
 
     /// Contains a vector field for each of the four data types
@@ -1555,7 +1557,7 @@ pub mod lists {
     // endregion
 
     /// Create a new list.
-    ///
+    /// Note that the function saves the list, but does not return it.
     pub fn list_create(typech: &str) {
         let mut newlist = List::new();
         newlist.typechoice = typech.to_string();
@@ -1570,6 +1572,9 @@ pub mod lists {
                 // String
                 let uselist = input_strvec(&app, "Please enter a string.", 790, 300);
                 newlist.words = uselist.clone();
+
+                println!("\n W1 The list has been created and is about to be saved. \n");
+
                 list_save(&newlist);
             }
 
@@ -1600,7 +1605,6 @@ pub mod lists {
             }
         }
 
-        // Note that the function saves the list, but does not return it.
     }
 
     /// Read a list (in json format) from a file.  Returns a tuple (filename, List)
@@ -1659,47 +1663,35 @@ pub mod lists {
     /// Edit an existing list.  Not yet implementd
     ///
     pub fn list_edit() {
-        println!("\n Someday I'll write this function. \n");
+        println!("\n Someday I'll write this function to edit a list. \n");
     }
 
     /// Prepare a list for saving to a file.
     ///
     pub fn list_save(list: &List) -> String {
 
-        println!("\n WL1 First waypoint in list_save(). \n");
-
         // region Set up directories.
 
-        let mut usedir = String::new();
+        let usedir = glob_check_lastdirused();
+
+        println!("\n W3 \n");
+
+        let filters = vec!["Lists", "*.lst", "Variables", "*.vrbl", "Banks", "*.bnk", "Text", "*.txt", "All Files", "*.*"];
+        let path = file_browse_tosave(&usedir, "", &filters);
+
+        println!("\n W4 \n");
+
+        // Store the current path in global variable LAST_DIR_USED.
+        let purepath: String = dir_normalize_path(&path);
         {
-            if LAST_DIR_USED.lock().unwrap().clone() == "" {
-                *LAST_DIR_USED.lock().unwrap() = LIST_DIR.to_string().clone();
-            } // If there is no recently used directory, use default.
-
-            println!("\n WL2 Second waypoint in list_save(). \n");
-
-            usedir = LAST_DIR_USED.lock().unwrap().clone();
-
-            println!("\n WL3 Third waypoint in list_save(). \n");
+            *LAST_DIR_USED.lock().unwrap() = purepath.clone();
         }
+
+        println!("\n W5 \n");
+
         // endregion
 
-        //region Call the file browser to get the proper path.
-
-        println!("\n WL4 Fourth waypoint in list_save(). \n");
-
-        let path = file_browse_tosave(&usedir, "",
-            "List Files    \t*.lst\nVariable Files   \t*.vrbl\nText Files   \t*.txt\nAll Files",
-        );
-
-        println!("\n WL5 Fifth waypoint in list_save(). \n");
-
-        {
-            *LAST_DIR_USED.lock().unwrap() = path.clone(); // Store the current path in global.
-        }
-        // endregion
-
-        println!("\n WL6 Sixth waypoint in list_save(). \n");
+        println!("\n W???? The directories have been set up. \n");
 
         list_save_as_json(list, path.as_str());
 

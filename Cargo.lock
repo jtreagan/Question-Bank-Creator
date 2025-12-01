@@ -162,9 +162,9 @@ checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
 
 [[package]]
 name = "lib_file"
-version = "0.1.6"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27bda93ac360bedfde7d466d34e1aefe5ee551668ef6e75c68bec1ba85f8f561"
+checksum = "3afaa72a74824a01167ce4971212dcbb121abad81754925b8cc0c42047910fab"
 dependencies = [
  "fltk",
  "lib_utils",
