@@ -829,7 +829,7 @@ pub mod questions {
 pub mod variable {
 
     use crate::global::{glob_check_lastdirused, TypeWrapper, TypeWrapper::*};
-    use crate::{lists::*, math_functions::*, LAST_DIR_USED};
+    use crate::{lists::*, math_functions::*, APP_FLTK, LAST_DIR_USED};
     use fltk::app;
     use fltk::button::{Button, CheckButton, RadioLightButton};
     use fltk::enums::{Color, FrameType};
@@ -844,6 +844,7 @@ pub mod variable {
     use std::{fs::File, io::Write};
     use lib_file::dir_mngmnt::dir_normalize_path;
     use lib_myfltk::fltkutils::fltk_custom_message;
+    use lib_myfltk::input_fltk::input_string;
     use crate::misc::dir_is_empty;
 
     //region Struct Section
@@ -852,10 +853,10 @@ pub mod variable {
     /// that QBC is built around.
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Variable {
-        pub var_fname: String,
+        pub fname: String,
         pub display_name: String,
         pub params: VarPrmtrs,
-        pub list_fname: String,
+        pub uselist: String,
         pub content: TypeWrapper,
         pub var_type: String,
     }
@@ -863,10 +864,10 @@ pub mod variable {
     impl Default for Variable {
         fn default() -> Self {
             Self {
-                var_fname: "New_Variable".to_string(),
+                fname: "New_Variable".to_string(),
                 display_name: "New_Variable".to_string(),
                 params: VarPrmtrs::new(),
-                list_fname: "".to_string(),
+                uselist: "".to_string(),
                 content: Integer(0),
                 var_type: "Strings".to_string(), // "Strings", "chars", "ints", "floats"
             }
@@ -932,9 +933,6 @@ pub mod variable {
     /// Create a new variable.
     ///
     pub fn vrbl_create() {
-        //todo: Instead of passing a reference to the variable struct,
-        //          have the parameters box return the variable struct.
-
         let mut var1 = Variable::new();
 
         vrbl_parameters_input_box(&mut var1);
@@ -952,12 +950,16 @@ pub mod variable {
     /// Input and save a new variable's parameters into the Variable struct.
     ///
     pub fn vrbl_parameters_input_box(var1: &mut Variable) {
+        // Note:  This is only called from vrbl_create().
+
         // todo: Grey out the input fields when the variable type is not "int" or "float".
         //          Use the `deactivate()` method.  First attempt didn't work.
 
+        // region Set up the window.
         let mut win = Window::new(900, 100, 600, 400, "Variable Parameters");
         win.set_color(Color::Cyan);
         win.make_resizable(true);
+        // endregion
 
         // region Create the radio buttons for the variable type.
         let radio_group = Group::new(0, 0, 600, 50, None);
@@ -1165,15 +1167,19 @@ pub mod variable {
         // endregion
 
         // region Do the callback for the Submit button
+
         submit_btn.set_callback(move |_| {
+
             // region Deal with the radio buttons.
+
             let vartype = if strings_btn.value() {
-                decmin.deactivate();
+                decmin.deactivate();  // todo: Grey out the input fields when the variable type is not "int" or "float".
                 decmax.deactivate();
                 decplaces.deactivate();
                 intmin.deactivate();
                 intmax.deactivate();
                 "Strings"
+
             } else if chars_btn.value() {
                 decmin.deactivate();
                 decmax.deactivate();
@@ -1231,7 +1237,7 @@ pub mod variable {
                 datavar.borrow_mut().params.num_min_float = decmin.value().parse::<f64>().unwrap();
                 datavar.borrow_mut().params.num_max_float = decmax.value().parse::<f64>().unwrap();
                 datavar.borrow_mut().params.num_dcml_places =
-                    decplaces.value().parse::<usize>().unwrap();
+                decplaces.value().parse::<usize>().unwrap();
             }
             // endregion
 
@@ -1247,24 +1253,58 @@ pub mod variable {
             app::wait();
         }
 
-        *var1 = datavar_outside.borrow().clone();
+        *var1 = datavar_outside.borrow().clone();  // This works because the `datavar_outside` Rc
+        // is pointing to the same RefCell as the `datavar` Rc that is used in the callback.
     }
 
     /// Prepare a Variable for saving.
     ///
     pub fn vrbl_save(var1: &mut Variable) {
 
+        // region Create the file name to use in the dialog.
+
+        let app;
+        {
+            app = *APP_FLTK.lock().unwrap();
+        }
+
+        var1.fname = match var1.var_type.as_str() {
+            "Strings" => {
+                let preferred_fname = input_string(&app, "Please enter your preferred file name:", 300, 90);
+                format!("str.{}", preferred_fname)
+            },
+            "Characters" => {
+                let preferred_fname = input_string(&app, "Please enter your preferred file name:", 300, 90);
+                format!("str.{}", preferred_fname)
+            },
+            "Integers" => {
+                format!("int.{}..{}", var1.params.num_min_int, var1.params.num_max_int)
+            },
+            "Decimals" => {
+                format!("float.{}_{}", var1.params.num_min_float, var1.params.num_max_float)
+            },
+            _ => "default".to_string(),
+
+        };
+        // endregion
+
+        // region Create file path & update `LastDirUsed`.
+
         let lastdir = glob_check_lastdirused();
 
+
         let filters = vec!["Variables", "*.vrbl", "Banks", "*.bnk", "Lists", "*.lst", "Text", "*.txt", "All Files", "*.*"];
-        let usepath = file_browse_tosave(&lastdir, "", &filters);
+        let usepath = file_browse_tosave(&lastdir, &var1.fname, &filters);
 
         {  // Set LAST_DIR_USED to the new path.
             let purepath: String = dir_normalize_path(&usepath);
             *LAST_DIR_USED.lock().unwrap() = purepath.clone();
         }
 
-        var1.var_fname = file_path_to_fname(&usepath);
+        var1.fname = file_path_to_fname(&usepath);
+
+        // endregion
+
         vrbl_save_as_json(var1, &usepath);
 
         println!("\n The variable has been saved \n");
@@ -1353,7 +1393,7 @@ pub mod variable {
                     let read_optn = list_read("Strings");
                     match read_optn {
                         Some((fname, newlist)) => {
-                            var1.list_fname = fname; // Sets the value of the variable's listname field
+                            var1.uselist = fname; // Sets the value of the variable's listname field
                             let usevec = newlist.words.clone(); // Clones the list content vector so you can mess with it.
                             let item = vec_random_choice(&usevec);
                             match item {
@@ -1382,7 +1422,7 @@ pub mod variable {
                     let read_optn = list_read("chars");
                     match read_optn {
                         Some((fname, newlist)) => {
-                            var1.list_fname = fname; // Sets the value of the variable's listname field
+                            var1.uselist = fname; // Sets the value of the variable's listname field
                             let usevec = newlist.runes.clone(); // Clones the list content vector so you can mess with it.
                             let item = vec_random_choice(&usevec);
                             match item {
@@ -1411,7 +1451,7 @@ pub mod variable {
                     let read_optn = list_read("ints");
                     match read_optn {
                         Some((fname, newlist)) => {
-                            var1.list_fname = fname; // Sets the value of the variable's listname field
+                            var1.uselist = fname; // Sets the value of the variable's listname field
                             let usevec = newlist.intsigned.clone(); // Clones the list content vector so you can mess with it.
                             let item = vec_random_choice(&usevec);
                             match item {
@@ -1439,7 +1479,7 @@ pub mod variable {
                     let read_optn = list_read("floats");
                     match read_optn {
                         Some((fname, newlist)) => {
-                            var1.list_fname = fname; // Sets the value of the variable's listname field
+                            var1.uselist = fname; // Sets the value of the variable's listname field
                             let usevec = newlist.decimals.clone(); // Clones the list content vector so you can mess with it.
                             let item = vec_random_choice(&usevec);
                             match item {
