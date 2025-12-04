@@ -1,0 +1,1 @@
+{"var_fname":"-1000000..1000000.vrbl","var_display_name":"New_Variable","params":{"is_string":false,"is_char":false,"is_from_list":false,"is_int":true,"is_float":false,"num_min_int":-1000000,"num_max_int":1000000,"num_min_float":0.0,"num_max_float":0.0,"num_dcml_places":0,"num_comma_frmttd":true},"list_fname":"","content":{"Integer":565079},"var_type":"Integers"}

@@ -1260,6 +1260,7 @@ pub mod variable {
     /// Prepare a Variable for saving.
     ///
     pub fn vrbl_save(var1: &mut Variable) {
+        // Probably should return either an option or a Result here.
 
         // region Create the file name to use in the dialog.
 
@@ -1612,9 +1613,6 @@ pub mod lists {
                 // String
                 let uselist = input_strvec(&app, "Please enter a string.", 790, 300);
                 newlist.words = uselist.clone();
-
-                println!("\n W1 The list has been created and is about to be saved. \n");
-
                 list_save(&newlist);
             }
 
@@ -1641,7 +1639,9 @@ pub mod lists {
             }
 
             _ => {
-                panic!("\n\n No match found!  Fix it!!\n\n");
+                fltk_custom_message("Invalid list type.","Return");
+                // So, then what happens in the calling function?  Probably
+                // need to return an option here.
             }
         }
 
@@ -1709,17 +1709,14 @@ pub mod lists {
     /// Prepare a list for saving to a file.
     ///
     pub fn list_save(list: &List) -> String {
+        // Why does this return the path?  Is it necessary?
 
         // region Set up directories.
 
         let usedir = glob_check_lastdirused();
 
-        println!("\n W3 \n");
-
         let filters = vec!["Lists", "*.lst", "Variables", "*.vrbl", "Banks", "*.bnk", "Text", "*.txt", "All Files", "*.*"];
         let path = file_browse_tosave(&usedir, "", &filters);
-
-        println!("\n W4 \n");
 
         // Store the current path in global variable LAST_DIR_USED.
         let purepath: String = dir_normalize_path(&path);
@@ -1727,12 +1724,8 @@ pub mod lists {
             *LAST_DIR_USED.lock().unwrap() = purepath.clone();
         }
 
-        println!("\n W5 \n");
-
         // endregion
-
-        println!("\n W???? The directories have been set up. \n");
-
+        
         list_save_as_json(list, path.as_str());
 
         path

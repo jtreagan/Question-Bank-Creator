@@ -16,7 +16,7 @@
 //! students for student-directed practice.
 //!
 //!
-//!    * VERSION = "0.29.7";
+//!    * VERSION = "0.29.8";
 //!    * AUTHOR = "John T. Reagan";
 //!    * LICENSE = "GNU Version 3";
 //!    * LICENSE_URL = "<https://opensource.org/license/agpl-v3>";
